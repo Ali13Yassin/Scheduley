@@ -183,23 +183,19 @@ export function loadCourseCardView(courses) {
         const card = document.createElement('div');
         card.className = 'course-card';
         card.dataset.id = courseId; // Use the courseId (key) here
-        if(metadata[courseId]){
-            let courseInfo = metadata[courseId];
-        }else{
-            let courseInfo = {
-                courseName: courseId,
-                level: "Unknown",
-                creditHours: "Unknown"
-            };
-        }
+        const courseInfo = metadata[courseId] || {
+            courseName: courseId,
+            level: "Unknown",
+            creditHours: "Unknown"
+        };
        
         //TODO: add more details to the card
         card.innerHTML = ` 
         <div class="course-card-title">${courseInfo["courseName"]}</div>
-        <div class="course-card-code">${"courseId"}</div>
-        <div class="course-card-details">Level:${courseInfo["level"]}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CR:${courseInfo["creditHours"]}</div>
+        <div class="course-card-code">${courseId}</div>
+        <div class="course-card-details">Level:${courseInfo["level"]}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CH:${courseInfo["creditHours"]}</div>
         `;
-        // card.innerHTML = `
+        //  card.innerHTML = `
         // <div class="course-card-title">${course.title}</div>
         // <div class="course-card-code">${courseId}</div>
         // <div class="course-card-level">${course.level}</div>
