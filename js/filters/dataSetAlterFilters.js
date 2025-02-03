@@ -25,28 +25,27 @@ function specificDaysFilter(data, chosenDays) {
 function removeSessionsFilter(data, sessionsToRemove) {
   const result = {};
 
-  for (const course in data) {
+  for (const [course, sessions] of Object.entries(data)) {
     if (!sessionsToRemove[course]) {
-      // If the course is not in sessionsToRemove, include it as is
-      result[course] = data[course];
+      result[course] = { ...sessions };
       continue;
     }
 
-    result[course] = {};
-
-    for (const sessionType in data[course]) {
-      // Check if the sessionType exists in sessionsToRemove for this course
-      if (!sessionsToRemove[course][sessionType]) {
-        result[course][sessionType] = data[course][sessionType];
-        continue;
-      }
-
-      // Filter out the sessions that match the names in sessionsToRemove
-      result[course][sessionType] = data[course][sessionType].filter(
-        session => !sessionsToRemove[course][sessionType].includes(session.class)
+    const filteredSessions = {};
+    const courseRemovals = sessionsToRemove[course] || {};
+    console.log(courseRemovals);
+    for (const [sessionType, classes] of Object.entries(sessions)) {
+      const classesToRemove = courseRemovals[sessionType] || [];
+      console.log(classesToRemove);
+      console.log(sessionType);
+      filteredSessions[sessionType] = classes.filter(
+        session => !classesToRemove.includes(session.class)
       );
     }
-  }
 
+    result[course] = filteredSessions;
+  }
+  console.log(data);
+  console.log(result);
   return result;
 }

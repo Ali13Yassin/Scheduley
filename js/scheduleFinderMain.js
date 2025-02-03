@@ -37,20 +37,21 @@ fetch('footer.html')
 
 
 function getSelectedFilters() {
-    //Get filter values first
+    // Get filter values first
     const chosenDays = document.querySelector('input[name="numOfDays"]:checked');
     const chosenGaps = document.querySelector('input[name="findSchedulesWithGaps"]:checked');
     const chosenLabOrTutorialAfterLecture = document.querySelector('input[name="checkLabOrTutorialAfterLecture"]:checked');
     const chosenRemoveSingleSessionDays = document.querySelector('input[name="removeSingleSessionDays"]:checked');
     const sessionsToRemove = window.selectedSessionsToRemove;
-    //Pack the filter values into an object to pass to the schedule generator
+
+    // Pack the filter values into an object to pass to the schedule generator
     const filterData = {
-        days: chosenDays ? chosenDays.value : "any", //default to any if no value is selected
-        numOfDays: chosenDays ? chosenDays.value : "any", //default to any if no value is selected
-        gaps: chosenGaps ? chosenGaps.value : false, //default to false if no value is selected
-        labOrTutorialAfterLecture: chosenLabOrTutorialAfterLecture ? chosenLabOrTutorialAfterLecture.value : false, //default to false if no value is selected
-        chosenRemoveSingleSessionDays: chosenRemoveSingleSessionDays ? chosenRemoveSingleSessionDays.value : false, //default to false if no value is selected
-        sessionsToRemove: sessionsToRemove ? sessionsToRemove.value : "none"
+        days: chosenDays ? chosenDays.value : "any", // default to any if no value is selected
+        numOfDays: chosenDays ? chosenDays.value : "any", // default to any if no value is selected
+        gaps: chosenGaps ? chosenGaps.value : false, // default to false if no value is selected
+        labOrTutorialAfterLecture: chosenLabOrTutorialAfterLecture ? chosenLabOrTutorialAfterLecture.value : false, // default to false if no value is selected
+        chosenRemoveSingleSessionDays: chosenRemoveSingleSessionDays ? chosenRemoveSingleSessionDays.value : false, // default to false if no value is selected
+        sessionsToRemove: sessionsToRemove ? sessionsToRemove : "none" // correctly refer to sessionsToRemove
     };
     return filterData;
 }
@@ -148,9 +149,9 @@ function showSelectedCoursesDetails(courseId) {
     // Initialize course entry if not exists
     if (!window.selectedSessionsToRemove[courseId]) {
         window.selectedSessionsToRemove[courseId] = {
-            lecture: [],
-            lab: [],
-            tutorial: []
+            lectures: [],
+            labs: [],
+            tutorials: []
         };
     }
 
@@ -186,7 +187,7 @@ function showSelectedCoursesDetails(courseId) {
             } else {
                 // Add selection
                 card.classList.add('selected');
-                sessionsArray.push(session);
+                sessionsArray.push(session.class);
             }
             
             // persistSelectedSessions();
@@ -203,7 +204,7 @@ function showSelectedCoursesDetails(courseId) {
         container.appendChild(lectureHeader);
 
         courseDetails.lectures.forEach((lecture, index) => {
-            container.appendChild(createSessionCard(lecture, 'Lecture', index));
+            container.appendChild(createSessionCard(lecture, 'lectures', index));
         });
     }
 
@@ -215,7 +216,7 @@ function showSelectedCoursesDetails(courseId) {
         container.appendChild(labHeader);
 
         courseDetails.labs.forEach((lab, index) => {
-            container.appendChild(createSessionCard(lab, 'Lab', index));
+            container.appendChild(createSessionCard(lab, 'labs', index));
         });
 }
 
@@ -227,7 +228,7 @@ if (courseDetails.tutorials && courseDetails.tutorials.length > 0) {
     container.appendChild(tutorialHeader);
 
     courseDetails.tutorials.forEach((tutorial, index) => {
-        container.appendChild(createSessionCard(tutorial, 'Tutorial', index));
+        container.appendChild(createSessionCard(tutorial, 'tutorials', index));
     });
 }
 }
@@ -331,6 +332,7 @@ document.getElementById("show-mycourse-details-button").addEventListener("click"
 document.getElementById("processButton").addEventListener("click", function() {
     const filterData = getSelectedFilters();
     const startTime = Date.now();
+    console.log(filterData);
     worker.postMessage({selectedResults, filterData, coursesData: JSON.parse(localStorage.getItem('coursesData'))});
     showLoadingOverlay("Finding Your Schedule");
     worker.onmessage = function(e) {
