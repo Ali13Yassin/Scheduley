@@ -81,7 +81,7 @@ button:active {
     cursor: pointer; /* Pointer cursor for interactivity */
     transition: transform 0.2s, background-color 0.2s; /* Smooth effects */
     position: relative;
-    height: 80px;
+    height: auto;
 }
 
 .course-card:hover {
@@ -127,6 +127,8 @@ button:active {
 .left-panel {
     /* width: 250px; */
     padding: 10px;
+    height: 100%;
+    overflow-y: auto;
 }
 
 .search-box {

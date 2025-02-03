@@ -83,7 +83,7 @@ export function parseCSV(csvContent) {
     }
 
     // Pass both datasets to the view if needed (modify loadCourseCardView as required)
-    loadCourseCardView(courses);
+    loadCourseCardView(courses, "courseGrid");
     
     // Store data globally and in localStorage
     window.courses = courses;
