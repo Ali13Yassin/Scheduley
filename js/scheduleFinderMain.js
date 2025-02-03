@@ -83,7 +83,7 @@ export function loadCourseCardView(courses, divId) {
         card.innerHTML = ` 
         <div class="course-card-title">${courseInfo["courseName"]}</div>
         <div class="course-card-code">${courseId}</div>
-        <div class="course-card-details">Level:${courseInfo["level"]}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CH:${courseInfo["creditHours"]}</div>
+        <div class="course-card-details">CH:${courseInfo["creditHours"]}</div>
         `;
         
         if(divId === "courseGrid"){
@@ -271,7 +271,7 @@ document.getElementById("next").addEventListener("click", function() {
 // Save schedule button
 document.getElementById("save-schedule-button").addEventListener("click", function() {
     localStorage.setItem('savedSchedule', JSON.stringify(allSchedules[viewIndex]));
-    showAlert("Schedule saved", "This DOES NOT register you in this course, you need to manually register in SIS!", "myschedule.html", "View schedule");
+    showAlert("Schedule saved", "This DOES NOT register you in this course, you need to manually register in SIS!", "mySchedule.html", "View schedule");
 });
 
 // Import schedule buttons
