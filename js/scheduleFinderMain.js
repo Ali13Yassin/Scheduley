@@ -42,13 +42,15 @@ function getSelectedFilters() {
     const chosenGaps = document.querySelector('input[name="findSchedulesWithGaps"]:checked');
     const chosenLabOrTutorialAfterLecture = document.querySelector('input[name="checkLabOrTutorialAfterLecture"]:checked');
     const chosenRemoveSingleSessionDays = document.querySelector('input[name="removeSingleSessionDays"]:checked');
+    const sessionsToRemove = window.selectedSessionsToRemove;
     //Pack the filter values into an object to pass to the schedule generator
     const filterData = {
         days: chosenDays ? chosenDays.value : "any", //default to any if no value is selected
         numOfDays: chosenDays ? chosenDays.value : "any", //default to any if no value is selected
         gaps: chosenGaps ? chosenGaps.value : false, //default to false if no value is selected
         labOrTutorialAfterLecture: chosenLabOrTutorialAfterLecture ? chosenLabOrTutorialAfterLecture.value : false, //default to false if no value is selected
-        chosenRemoveSingleSessionDays: chosenRemoveSingleSessionDays ? chosenRemoveSingleSessionDays.value : false //default to false if no value is selected
+        chosenRemoveSingleSessionDays: chosenRemoveSingleSessionDays ? chosenRemoveSingleSessionDays.value : false, //default to false if no value is selected
+        sessionsToRemove: sessionsToRemove ? sessionsToRemove.value : "none"
     };
     return filterData;
 }
