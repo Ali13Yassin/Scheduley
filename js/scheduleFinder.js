@@ -85,7 +85,9 @@ function findSchedule(courseKeys, filterData, courseData) {
     // if (filterData.days !== "any"){
     //     courseDetails = specificDaysFilter(courseDetails, chosenDays) //TODO: Implement this function
     // }
-    
+    if (filterData.sessionsToRemove !== "none") {
+        courseDetails = removeSessionsFilter(courseDetails, filterData.sessionsToRemove);
+    }
     // Generate schedules with dynamic time limit
     let schedules = generateSchedules(courseKeys, courseDetails, [], [], startTime, timeLimit);
 
