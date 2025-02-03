@@ -6,7 +6,13 @@ let worker = new Worker("../js/scheduleFinder.js");
 
 // Initialize the file handler
 initFileHandler(); //TODO: only load when needed
-
+// Check if website is loaded on mobile
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+if (isMobile) {
+    showAlert("Mobile Warning", "This website is optimized for desktop use. Some features may not work properly on mobile devices.");
+    document.getElementById('Errblur').style.backgroundColor = '#fffff';
+    document.getElementById('Errblur').style.backdropFilter = 'blur(0)';
+}
 window.selectedResults = null; //Temporary to check if courses are selected
 
 fetch('nav.html')
