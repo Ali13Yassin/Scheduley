@@ -193,6 +193,13 @@ function showSelectedCoursesDetails(courseId) {
             // persistSelectedSessions();
             updateTimetablePreview();
         });
+        card.addEventListener('mouseenter', () => {
+            renderSchedule([session], 'course-details-container', window.courseColors);
+        });
+    
+        card.addEventListener('mouseleave', () => {
+            
+        });
 
         return card;
     }
