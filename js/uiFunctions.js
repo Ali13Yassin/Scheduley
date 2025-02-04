@@ -25,10 +25,25 @@ export function renderSchedule(schedule, containerId, customColors={}) {
         block.className = "class-block";
         block.style.top = `${(startTime - 8) * 50}px`; // Adjust 8 to match your dayStart time
         block.style.height = `${duration * 50}px`;
-        block.textContent = `${session.course} - ${session.class} (${session.location})`;
+        // block.textContent = `${session.course} - ${session.class} (${session.location})`;
+        block.innerHTML = `
+            <div class="course-name">${session.course}</div>
+            <div class="location">${session.location}</div>
+            <div class="time">${startTime}:00 - ${endTime}:00</div>
+        `;
+        // block.innerHTML = `
+        //     <div class="course-name">${session.course}</div>
+        //     <div class="class-type">${session.class}</div>
+        //     <div class="location">${session.location}</div>
+        //     <div class="time">${startTime}:00 - ${endTime}:00</div>
+        //     <div class="lecturer">${session.lecturer || 'TBA'}</div>
+        // `;
+        block.style.display = 'flex';
+        block.style.flexDirection = 'column';
 
         if (customColors[session.course]){
-            block.style.backgroundColor = customColors[session.course];
+            block.style.backgroundColor = customColors[session.course][0];
+            block.style.color = customColors[session.course][1];
         }
         dayColumn.appendChild(block);
     });

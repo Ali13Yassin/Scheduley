@@ -271,6 +271,7 @@ document.getElementById("next").addEventListener("click", function() {
 // Save schedule button
 document.getElementById("save-schedule-button").addEventListener("click", function() {
     localStorage.setItem('savedSchedule', JSON.stringify(allSchedules[viewIndex]));
+    localStorage.setItem('savedColors', JSON.stringify(window.courseColors));
     showAlert("Schedule saved", "This DOES NOT register you in this course, you need to manually register in SIS!", "mySchedule.html", "View schedule");
 });
 
@@ -283,12 +284,14 @@ document.getElementById("upload-button").addEventListener("click", function() {
 // Filter menu buttons
 document.getElementById("show-filter-menu-button").addEventListener("click", function() {
     // TODO: check if a course has no sessions chosen
-    console.log(selectedSessionsToRemove);
     document.getElementById("mycourse-selection-container").style.display = "none";
     document.getElementById("filter-selection-menu").style.display = "block";
 });
 document.getElementById("save-mycourse-details").addEventListener("click", function() {
-
+    document.getElementById("course-details-container").style.display = "none";
+    document.getElementById("mycourse-selection-container").style.display = "block";
+});
+document.getElementById("backto-online-import-button").addEventListener("click", function() {
     document.getElementById("course-details-container").style.display = "none";
     document.getElementById("mycourse-selection-container").style.display = "block";
 });
@@ -327,17 +330,38 @@ document.getElementById("show-mycourse-details-button").addEventListener("click"
     document.getElementById("mycourse-selection-container").style.display = "block";
 });
 
-
+window.courseColors = [
+    ["#F17141", "#FFECAE"],
+    ["#FFECAE", "#F17141"],
+    ["#702FE5", "#F9CDD1"],
+    ["#25092E", "#F2C0DD"],
+    ["#F2C0DD", "#25092E"],
+    ["#1F3FC3", "#EFEFD7"],
+    ["#EFEFD7", "#1F3FC3"],
+    ["#475E3D", "#B9D5E6"],
+    ["#1C304F", "#B9D5E6"],
+    ["#B9D5E6", "#1C304F"],
+];
 // Make schedule button
 document.getElementById("processButton").addEventListener("click", function() {
     const filterData = getSelectedFilters();
     const startTime = Date.now();
-    console.log(filterData);
+    
+    // Randomly assign colors to selected courses
+    const assignedColors = {};
+    const availableColors = [...window.courseColors];
+    selectedResults.forEach(courseId => {
+        const randomIndex = Math.floor(Math.random() * availableColors.length);
+        assignedColors[courseId] = availableColors.splice(randomIndex, 1)[0];
+        if (availableColors.length === 0) {
+            availableColors.push(...window.courseColors);
+        }
+    });
+    window.courseColors = assignedColors;
     worker.postMessage({selectedResults, filterData, coursesData: JSON.parse(localStorage.getItem('coursesData'))});
     showLoadingOverlay("Finding Your Schedule");
     worker.onmessage = function(e) {
         let data = e.data;
-        console.log(data);
         if (data.type === "error") {
             console.error("Worker error:", data.message);
             showAlert("An error happened", "Please try again");
@@ -358,7 +382,8 @@ document.getElementById("processButton").addEventListener("click", function() {
             console.log("Total schedules found: " + allSchedules.length);
             document.getElementById("center-container").style.display = "none";
             document.getElementById("schedule-details-container").style.display = "block";
-            renderSchedule(allSchedules[0], "schedule-details-container");
+            console.log(assignedColors);
+            renderSchedule(allSchedules[0], "schedule-details-container", assignedColors);
             viewIndex = 0;
             hideLoadingOverlay();
         };
