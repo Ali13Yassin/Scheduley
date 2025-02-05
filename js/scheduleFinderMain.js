@@ -263,7 +263,7 @@ document.getElementById("back").addEventListener("click", function() {
     if(viewIndex < 0){
         viewIndex = allSchedules.length - 1;
     }
-    renderSchedule(allSchedules[viewIndex], "schedule-details-container");
+    renderSchedule(allSchedules[viewIndex], "schedule-details-container", window.courseColors);
 });
 
 // Next schedule button
@@ -272,7 +272,7 @@ document.getElementById("next").addEventListener("click", function() {
     if(viewIndex >= allSchedules.length){
         viewIndex = 0;
     }
-    renderSchedule(allSchedules[viewIndex], "schedule-details-container");
+    renderSchedule(allSchedules[viewIndex], "schedule-details-container", window.courseColors);
 });
 
 // Save schedule button
@@ -389,7 +389,6 @@ document.getElementById("processButton").addEventListener("click", function() {
             console.log("Total schedules found: " + allSchedules.length);
             document.getElementById("center-container").style.display = "none";
             document.getElementById("schedule-details-container").style.display = "block";
-            console.log(assignedColors);
             renderSchedule(allSchedules[0], "schedule-details-container", assignedColors);
             viewIndex = 0;
             hideLoadingOverlay();
