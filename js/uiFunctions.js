@@ -17,10 +17,15 @@ export function renderSchedule(schedule, containerId, customColors={}) {
             return;
         }
 
-        const startTime = parseInt(session.start);
-        const endTime = parseInt(session.end);
-        const duration = endTime - startTime;
 
+        const startTime = typeof session.start === 'string' ? 
+            parseFloat(session.start.split(':').reduce((h, m) => parseFloat(h) + parseFloat(m)/60)) : 
+            session.start;
+        const endTime = typeof session.end === 'string' ? 
+        parseFloat(session.end.split(':').reduce((h, m) => parseFloat(h) + parseFloat(m)/60)) : 
+        session.end;
+        const duration = endTime - startTime;
+        
         const block = document.createElement("div");
         block.className = "class-block";
         block.style.top = `${(startTime - 8) * 50}px`; // Adjust 8 to match your dayStart time
@@ -29,7 +34,7 @@ export function renderSchedule(schedule, containerId, customColors={}) {
         block.innerHTML = `
             <div class="course-name">${session.course}</div>
             <div class="location">${session.location}</div>
-            <div class="time">${startTime}:00 - ${endTime}:00</div>
+            <div class="time">${session.start} - ${session.end}</div>
         `;
         // block.innerHTML = `
         //     <div class="course-name">${session.course}</div>
