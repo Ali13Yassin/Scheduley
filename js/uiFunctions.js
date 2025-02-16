@@ -8,7 +8,7 @@ export function renderSchedule(schedule, containerId, customColors={}) {
 
     // Clear all previously rendered blocks in this specific container
     container.querySelectorAll('.class-block').forEach(block => block.remove());
-
+    const details = JSON.parse(localStorage.getItem('courseDetails'));
     schedule.forEach(session => {
         const dayColumn = container.querySelector(`.day-column[data-day="${session.day}"]`);
         
@@ -25,14 +25,15 @@ export function renderSchedule(schedule, containerId, customColors={}) {
         parseFloat(session.end.split(':').reduce((h, m) => parseFloat(h) + parseFloat(m)/60)) : 
         session.end;
         const duration = endTime - startTime;
-        
+        const sessionName = details ? details[session.course].courseName : session.course;
         const block = document.createElement("div");
         block.className = "class-block";
         block.style.top = `${(startTime - 8) * 50}px`; // Adjust 8 to match your dayStart time
         block.style.height = `${duration * 50}px`;
         // block.textContent = `${session.course} - ${session.class} (${session.location})`;
         block.innerHTML = `
-            <div class="course-name">${session.course}</div>
+            <div class="course-name">${sessionName}</div>
+            <div class="course-name">${session.lecturer}</div>
             <div class="location">${session.location}</div>
             <div class="time">${session.start} - ${session.end}</div>
         `;
