@@ -252,7 +252,7 @@ function updateTimetablePreview() {
 // Online Import schedule buttons
 document.getElementById("SUT-online-import").addEventListener("click", function() {
     showLoadingOverlay("Downloading information");
-    const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeTRwHHeotLdbmKxQqY3j6XIfD_-AoF4iErQGQOo9J3GwKLXFX9EYqQWGmpwyo7CW9djuv1Ck5efm0/pub?gid=755763171&single=true&output=csv";
+    const url = "https://script.google.com/macros/s/AKfycbwmrZh5aJox4P5LcK6cPaud_-d02cSohdRwrKai93EHidZX8eEkB6sRY2ztPI7k2V7x/exec";
     fetchCSV(url)
     .then(() => hideLoadingOverlay());
 });

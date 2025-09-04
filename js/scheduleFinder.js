@@ -132,7 +132,7 @@ self.onmessage = function(e) {
     }
 };
 function trackRequest(data){
-    const trackingUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQeTRwHHeotLdbmKxQqY3j6XIfD_-AoF4iErQGQOo9J3GwKLXFX9EYqQWGmpwyo7CW9djuv1Ck5efm0/pub?gid=429936524&single=true&output=csv';
+    const trackingUrl = 'https://script.google.com/macros/s/AKfycbxb9DgdbxyYXmDKmtHrzL3NFiJVhIecIzx-AlQAg3WH4AHycMyKTZta_T05Z1JuLdYj/exec';
       // Send the tracking data via a POST request
       fetch(trackingUrl, {
         method: 'POST',

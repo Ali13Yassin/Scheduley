@@ -74,7 +74,7 @@ export function parseCSV(csvContent) {
             case "LAB":
                 courses[course].labs.push(session);
                 break;
-            case "Tutorials":
+            case "TUT":
                 courses[course].tutorials.push(session);
                 break;
             default:
