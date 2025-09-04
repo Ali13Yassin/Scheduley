@@ -66,51 +66,101 @@ export function loadCourseCardView(courses, divId) {
     const selectedCourses = new Set(); // To track selected course IDs
     // Get courses from localStorage
     const detailsString = localStorage.getItem('courseDetails');
-    if (detailsString) {
-        const metadata = JSON.parse(detailsString);
+    
+    // Store original courses data for filtering
+    window.originalCoursesData = courses;
+    window.originalCourseMetadata = detailsString ? JSON.parse(detailsString) : {};
+    
+    function renderCourses(coursesToRender) {
         courseGrid.innerHTML = ''; // Clear existing content before loading
-    Object.entries(courses).forEach(([courseId, course]) => {
-        const card = document.createElement('div');
-        card.className = 'course-card';
-        card.dataset.id = courseId; // Use the courseId (key) here
-        const courseInfo = metadata[courseId] || {
-            courseName: courseId,
-            level: "Unknown",
-            creditHours: "Unknown"
-        };
-       
-        //TODO: add more details to the card
-        card.innerHTML = ` 
-        <div class="course-card-title">${courseInfo["courseName"]}</div>
-        <div class="course-card-code">${courseId}</div>
-        <div class="course-card-details">CH:${courseInfo["creditHours"]}</div>
-        `;
         
-        if(divId === "courseGrid"){
-            card.addEventListener('click', () => {
-                // Toggle selection
-                if (selectedCourses.has(courseId)) {
-                    selectedCourses.delete(courseId); // Remove from selected set
-                    card.classList.remove('selected'); // Remove highlight
-                    window.selectedResults = Array.from(selectedCourses); // TODO: not store in global
-                } else {
-                    selectedCourses.add(courseId); // Add to selected set
-                    card.classList.add('selected'); // Highlight card
-                    window.selectedResults = Array.from(selectedCourses);
-                }
-                });
-        }else{
-            card.addEventListener('click', () => {
-                // Toggle selection
-                showSelectedCoursesDetails(courseId);
-                document.getElementById("mycourse-selection-container").style.display = "none";
-                document.getElementById("course-details-container").style.display = "block";
-                });
-        }
-        
+        Object.entries(coursesToRender).forEach(([courseId, course]) => {
+            const card = document.createElement('div');
+            card.className = 'course-card';
+            card.dataset.id = courseId; // Use the courseId (key) here
+            const courseInfo = window.originalCourseMetadata[courseId] || {
+                courseName: courseId,
+                level: "Unknown",
+                creditHours: "Unknown"
+            };
+           
+            //TODO: add more details to the card
+            card.innerHTML = ` 
+            <div class="course-card-title">${courseInfo["courseName"]}</div>
+            <div class="course-card-code">${courseId}</div>
+            <div class="course-card-details">CH:${courseInfo["creditHours"]}</div>
+            `;
+            
+            // Restore selection state if this course was previously selected
+            if (selectedCourses.has(courseId)) {
+                card.classList.add('selected');
+            }
+            
+            if(divId === "courseGrid"){
+                card.addEventListener('click', () => {
+                    // Toggle selection
+                    if (selectedCourses.has(courseId)) {
+                        selectedCourses.delete(courseId); // Remove from selected set
+                        card.classList.remove('selected'); // Remove highlight
+                        window.selectedResults = Array.from(selectedCourses); // TODO: not store in global
+                    } else {
+                        selectedCourses.add(courseId); // Add to selected set
+                        card.classList.add('selected'); // Highlight card
+                        window.selectedResults = Array.from(selectedCourses);
+                    }
+                    });
+            }else{
+                card.addEventListener('click', () => {
+                    // Toggle selection
+                    showSelectedCoursesDetails(courseId);
+                    document.getElementById("mycourse-selection-container").style.display = "none";
+                    document.getElementById("course-details-container").style.display = "block";
+                    });
+            }
+            
 
-        courseGrid.appendChild(card);
-    });
+            courseGrid.appendChild(card);
+        });
+    }
+    
+    // Initial render
+    if (detailsString) {
+        renderCourses(courses);
+        
+        // Add search functionality only for courseGrid
+        if(divId === "courseGrid") {
+            const searchInput = document.getElementById('course-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase().trim();
+                    
+                    if (searchTerm === '') {
+                        // Show all courses if search is empty
+                        renderCourses(window.originalCoursesData);
+                    } else {
+                        // Filter courses based on search term
+                        const filteredCourses = {};
+                        Object.entries(window.originalCoursesData).forEach(([courseId, course]) => {
+                            const courseInfo = window.originalCourseMetadata[courseId] || {
+                                courseName: courseId,
+                                level: "Unknown",
+                                creditHours: "Unknown"
+                            };
+                            
+                            // Search in course code and course name
+                            const matchesCourseCode = courseId.toLowerCase().includes(searchTerm);
+                            const matchesCourseName = courseInfo.courseName.toLowerCase().includes(searchTerm);
+                            
+                            if (matchesCourseCode || matchesCourseName) {
+                                filteredCourses[courseId] = course;
+                            }
+                        });
+                        
+                        renderCourses(filteredCourses);
+                    }
+                });
+            }
+        }
     }
 }
 

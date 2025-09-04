@@ -232,3 +232,33 @@ button:active {
     background-color: #57438B;
     color: #F2735E;
 }
+
+/* Course search bar styles */
+.course-search-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    padding: 0 20px;
+}
+
+.course-search-box {
+    width: 100%;
+    max-width: 500px;
+    padding: 12px 16px;
+    border: 2px solid #CE3602;
+    border-radius: 8px;
+    background-color: #fff;
+    font-size: 16px;
+    font-family: 'Manrope', sans-serif;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.course-search-box:focus {
+    border-color: #E84003;
+    box-shadow: 0 0 0 3px rgba(206, 54, 2, 0.1);
+}
+
+.course-search-box::placeholder {
+    color: #999;
+}
