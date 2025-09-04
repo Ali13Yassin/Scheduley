@@ -34,7 +34,7 @@ def get_course_type(teaching_method):
     else:
         return method
 
-def convert_csv_data(input_file='Downloaded data.csv', output_file=None):
+def convert_csv_data(input_file='data.csv', output_file=None):
     """Convert downloaded data to template format."""
     
     # Check if input file exists
@@ -49,16 +49,41 @@ def convert_csv_data(input_file='Downloaded data.csv', output_file=None):
     
     schedule_data = []
     course_info = {}
+    total_rows_read = 0
+    skipped_rows = 0
     
     try:
-        # Read the downloaded data
-        with open(input_file, 'r', encoding='utf-8') as file:
+        # Read the downloaded data with proper BOM handling
+        with open(input_file, 'r', encoding='utf-8-sig') as file:
             reader = csv.DictReader(file)
             
-            for row in reader:
+            print(f"CSV Headers detected: {reader.fieldnames}")
+            print(f"Starting to process rows from '{input_file}'...")
+            
+            for row_num, row in enumerate(reader, start=1):
+                total_rows_read += 1
+                
+                course_code = row.get('Course Code', '').strip()
+                day = row.get('Day', '').strip()
+                
                 # Skip rows with missing essential data
-                if not row.get('Course Code', '').strip() or not row.get('Day', '').strip():
+                if not course_code or not day:
+                    skipped_rows += 1
+                    reason = []
+                    if not course_code:
+                        reason.append("missing course code")
+                    if not day:
+                        reason.append("missing day")
+                    
+                    print(f"SKIPPED Row {row_num}: {', '.join(reason)} - Course Code: '{course_code}', Day: '{day}'")
+                    if row_num <= 5:  # Show details for first 5 skipped rows
+                        print(f"  Available keys: {list(row.keys())}")
+                        print(f"  Sample values: Course Name='{row.get('Course Name', '')}', Section='{row.get('Section', '')}'")
                     continue
+                
+                # Log processing of rows with HTML entities
+                if '&lt;br/&gt;' in day or '&lt;br/&gt;' in row.get('Slot', ''):
+                    print(f"INFO Row {row_num}: Contains HTML entities - Course: {course_code}, Day: {day}")
                 
                 # Parse time slot
                 start_time, end_time = parse_time_slot(row.get('Slot', ''))
@@ -135,6 +160,11 @@ def convert_csv_data(input_file='Downloaded data.csv', output_file=None):
                 
                 writer.writerow(row)
         
+        print(f"\nConversion Summary:")
+        print(f"- Total rows read: {total_rows_read}")
+        print(f"- Rows skipped: {skipped_rows}")
+        print(f"- Schedule entries processed: {len(schedule_data)}")
+        print(f"- Unique courses found: {len(course_info)}")
         print(f"Successfully converted {len(schedule_data)} schedule entries and {len(course_info)} unique courses.")
         print(f"Output saved to '{output_file}'")
         return True
