@@ -36,13 +36,19 @@
                 <input type="text" id="course-search-input" class="course-search-box" placeholder="Search by course code or name...">
             </div>
             <div class="grid-container" id="courseGrid"></div>
-            <button id="show-mycourse-details-button">Next</button>
+            <div class="nav-row">
+                <button id="course-selection-back">Back</button>
+                <button id="show-mycourse-details-button">Next</button>
+            </div>
         </div>
         <!-- Course details selection menu -->
         <div id="mycourse-selection-container" style="display: none;">
             <h2>Choose a course to edit</h2>
             <div class="grid-container" id="mycourseGrid"></div>
-            <button id="show-filter-menu-button">Next</button>
+            <div class="nav-row">
+                <button id="mycourse-back">Back</button>
+                <button id="show-filter-menu-button">Next</button>
+            </div>
         </div>
         <!-- Course details menu -->
         <div id="course-details-container" style="display: none;">
@@ -54,7 +60,10 @@
                 </div>
         
                 <div id="right-panel"></div>
-                <button id="save-mycourse-details">Save</button>
+                <div class="nav-row">
+                    <button id="course-details-back">Back</button>
+                    <button id="save-mycourse-details">Save</button>
+                </div>
             </div>
         </div>
         <!-- Filters menu -->
@@ -98,8 +107,10 @@
                     <label for="removeSingleSessionDays-true-checkbox">Yes</label>
                 </div>
             </div>
-            <!-- <button id="back">Back</button> -->
-            <button id="processButton">Generate Schedule</button>
+            <div class="nav-row">
+                <button id="filter-back">Back</button>
+                <button id="processButton">Generate Schedule</button>
+            </div>
          </div>
     </div>
     <div id="processOverlay">
@@ -110,8 +121,11 @@
     </div>
     <!-- Schedule confirmation menu -->
     <div id="schedule-details-container" style="display: none;">
-        <button id="back">Back</button>
-        <button id="next">Next</button>
+        <div class="nav-row">
+            <button id="back">Back</button>
+            <button id="next">Next</button>
+            <button id="schedule-stage-back">Back to filters</button>
+        </div>
         <!-- Should be imported first -->
         <div id="schedule-container"></div>
         <button id="save-schedule-button">Save schedule</button>

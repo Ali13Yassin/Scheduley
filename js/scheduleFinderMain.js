@@ -296,6 +296,24 @@ function updateTimetablePreview() {
     console.log('Current selections:', window.selectedSessionsToRemove);
 }
 
+// Centralized stage navigation
+const STAGES = [
+  'online-import-container',
+  'upload-container',
+  'course-selection-container',
+  'mycourse-selection-container',
+  'course-details-container',
+  'filter-selection-menu',
+  'schedule-details-container'
+];
+
+function showStage(idToShow) {
+  STAGES.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = (id === idToShow) ? 'block' : 'none';
+  });
+}
 
 // Schedule navigation buttons
 
@@ -334,8 +352,7 @@ document.getElementById("save-schedule-button").addEventListener("click", functi
 
 // Import schedule buttons
 document.getElementById("upload-button").addEventListener("click", function() {
-    document.getElementById("online-import-container").style.display = "none";
-    document.getElementById("upload-container").style.display = "block";
+    showStage('upload-container');
 });
 
 // Filter menu buttons
@@ -349,25 +366,11 @@ document.getElementById("save-mycourse-details").addEventListener("click", funct
     document.getElementById("mycourse-selection-container").style.display = "block";
 });
 document.getElementById("backto-online-import-button").addEventListener("click", function() {
-    document.getElementById("course-details-container").style.display = "none";
-    document.getElementById("mycourse-selection-container").style.display = "block";
+    showStage('online-import-container');
 });
 
-// Import schedule button
-document.getElementById("save-import-button").addEventListener("click", function() {
-    const fileInput = document.getElementById('fileInput');
-    if (!fileInput.files.length) {
-        showAlert("No data found", "Please upload a schedule file first");
-        return;
-    }
-    const savedSchedule = localStorage.getItem('coursesData');
-    if (!savedSchedule) {
-        showAlert("An error happened", "Please import a schedule again");
-        return;
-    }
-    // Change the style of the upload container
-    document.getElementById("upload-container").style.display = "none";
-    document.getElementById("course-selection-container").style.display = "block";
+document.getElementById("course-selection-back").addEventListener("click", function() {
+    showStage('upload-container');
 });
 
 document.getElementById("show-mycourse-details-button").addEventListener("click", function() {
@@ -386,6 +389,41 @@ document.getElementById("show-mycourse-details-button").addEventListener("click"
     document.getElementById("course-selection-container").style.display = "none";
     document.getElementById("mycourse-selection-container").style.display = "block";
 });
+
+document.getElementById("mycourse-back").addEventListener("click", function() {
+    showStage('course-selection-container');
+});
+
+document.getElementById("show-filter-menu-button").addEventListener("click", function() {
+    // ...existing checks...
+    showStage('filter-selection-menu');
+});
+
+document.getElementById("course-details-back").addEventListener("click", function() {
+    showStage('mycourse-selection-container');
+});
+
+document.getElementById("save-mycourse-details").addEventListener("click", function() {
+    // ...existing save...
+    showStage('mycourse-selection-container');
+});
+
+document.getElementById("filter-back").addEventListener("click", function() {
+    showStage('mycourse-selection-container');
+});
+
+// After generation, allow going back to filters
+const scheduleBackToFiltersBtn = document.getElementById('schedule-stage-back');
+if (scheduleBackToFiltersBtn) {
+    scheduleBackToFiltersBtn.addEventListener('click', function() {
+        showStage('filter-selection-menu');
+    });
+}
+
+// When schedules are ready, switch to schedule stage
+// In worker.onmessage -> processResults():
+// showStage('schedule-details-container');
+// document.getElementById("center-container").style.display = "none"; // not needed if using showStage
 
 // Immutable base palette, per-run assigned colors stored separately
 window.BASE_COURSE_COLORS = [
@@ -445,10 +483,11 @@ document.getElementById("processButton").addEventListener("click", function() {
             }
             window.allSchedules = data.schedules;
             console.log("Total schedules found: " + allSchedules.length);
-            document.getElementById("center-container").style.display = "none";
-            document.getElementById("schedule-details-container").style.display = "block";
+            // document.getElementById("center-container").style.display = "none";
+            // document.getElementById("schedule-details-container").style.display = "block";
             renderSchedule(allSchedules[0], "schedule-details-container", assignedColors);
             viewIndex = 0;
+            showStage('schedule-details-container');
             hideLoadingOverlay();
         };
         if (timeElapsed < minimumLoadTime) {
