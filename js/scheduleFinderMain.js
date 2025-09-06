@@ -63,12 +63,15 @@ let viewIndex = 0;
 //Course selection cards code
 export function loadCourseCardView(courses, divId) {
     const courseGrid = document.getElementById(divId);
-    const selectedCourses = new Set(); // To track selected course IDs
+    // Initialize with previously selected courses (preserve across renders)
+    let selectedCourses = new Set(divId === 'courseGrid' ? (window.selectedResults || []) : []);
     // Get courses from localStorage
     const detailsString = localStorage.getItem('courseDetails');
     
-    // Store original courses data for filtering
-    window.originalCoursesData = courses;
+    // Store original courses data for filtering (only for the main course grid)
+    if (divId === 'courseGrid') {
+        window.originalCoursesData = courses;
+    }
     window.originalCourseMetadata = detailsString ? JSON.parse(detailsString) : {};
     
     function renderCourses(coursesToRender) {
@@ -83,8 +86,8 @@ export function loadCourseCardView(courses, divId) {
                 level: "Unknown",
                 creditHours: "Unknown"
             };
-           
-            //TODO: add more details to the card
+            
+            // Card content
             card.innerHTML = ` 
             <div class="course-card-title">${courseInfo["courseName"]}</div>
             <div class="course-card-code">${courseId}</div>
@@ -102,64 +105,54 @@ export function loadCourseCardView(courses, divId) {
                     if (selectedCourses.has(courseId)) {
                         selectedCourses.delete(courseId); // Remove from selected set
                         card.classList.remove('selected'); // Remove highlight
-                        window.selectedResults = Array.from(selectedCourses); // TODO: not store in global
                     } else {
                         selectedCourses.add(courseId); // Add to selected set
                         card.classList.add('selected'); // Highlight card
-                        window.selectedResults = Array.from(selectedCourses);
                     }
-                    });
+                    window.selectedResults = Array.from(selectedCourses); // persist globally
+                });
             }else{
                 card.addEventListener('click', () => {
-                    // Toggle selection
                     showSelectedCoursesDetails(courseId);
                     document.getElementById("mycourse-selection-container").style.display = "none";
                     document.getElementById("course-details-container").style.display = "block";
-                    });
+                });
             }
-            
 
             courseGrid.appendChild(card);
         });
     }
     
     // Initial render
-    if (detailsString) {
-        renderCourses(courses);
-        
-        // Add search functionality only for courseGrid
-        if(divId === "courseGrid") {
-            const searchInput = document.getElementById('course-search-input');
-            if (searchInput) {
-                searchInput.addEventListener('input', (e) => {
-                    const searchTerm = e.target.value.toLowerCase().trim();
-                    
-                    if (searchTerm === '') {
-                        // Show all courses if search is empty
-                        renderCourses(window.originalCoursesData);
-                    } else {
-                        // Filter courses based on search term
-                        const filteredCourses = {};
-                        Object.entries(window.originalCoursesData).forEach(([courseId, course]) => {
-                            const courseInfo = window.originalCourseMetadata[courseId] || {
-                                courseName: courseId,
-                                level: "Unknown",
-                                creditHours: "Unknown"
-                            };
-                            
-                            // Search in course code and course name
-                            const matchesCourseCode = courseId.toLowerCase().includes(searchTerm);
-                            const matchesCourseName = courseInfo.courseName.toLowerCase().includes(searchTerm);
-                            
-                            if (matchesCourseCode || matchesCourseName) {
-                                filteredCourses[courseId] = course;
-                            }
-                        });
-                        
-                        renderCourses(filteredCourses);
-                    }
-                });
-            }
+    renderCourses(courses);
+    
+    // Add search functionality only for courseGrid
+    if(divId === "courseGrid") {
+        const searchInput = document.getElementById('course-search-input');
+        if (searchInput) {
+            // Avoid stacking listeners on re-render
+            searchInput.oninput = (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                const source = window.originalCoursesData || {};
+                if (searchTerm === '') {
+                    renderCourses(source);
+                } else {
+                    const filteredCourses = {};
+                    Object.entries(source).forEach(([courseId, course]) => {
+                        const courseInfo = window.originalCourseMetadata[courseId] || {
+                            courseName: courseId,
+                            level: "Unknown",
+                            creditHours: "Unknown"
+                        };
+                        const matchesCourseCode = courseId.toLowerCase().includes(searchTerm);
+                        const matchesCourseName = (courseInfo.courseName || '').toLowerCase().includes(searchTerm);
+                        if (matchesCourseCode || matchesCourseName) {
+                            filteredCourses[courseId] = course;
+                        }
+                    });
+                    renderCourses(filteredCourses);
+                }
+            };
         }
     }
 }
@@ -392,6 +385,11 @@ document.getElementById("show-mycourse-details-button").addEventListener("click"
 
 document.getElementById("mycourse-back").addEventListener("click", function() {
     showStage('course-selection-container');
+    // Restore the full dataset to the main grid and reset search
+    const allCourses = JSON.parse(localStorage.getItem('coursesData')) || window.originalCoursesData || {};
+    const searchInput = document.getElementById('course-search-input');
+    if (searchInput) searchInput.value = '';
+    loadCourseCardView(allCourses, 'courseGrid');
 });
 
 document.getElementById("show-filter-menu-button").addEventListener("click", function() {
