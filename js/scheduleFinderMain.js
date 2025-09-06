@@ -57,6 +57,81 @@ function getSelectedFilters() {
 }
 
 let viewIndex = 0;
+let filteredIndexes = null; // array of indexes into allSchedules matching active filter
+let activeDayOff = null; // e.g., 'MON' or null
+
+function computeDayUsage(schedule) {
+    // Returns a Set of days present in schedule
+    const days = new Set();
+    if (Array.isArray(schedule)) {
+        schedule.forEach(s => { if (s && s.day) days.add(s.day); });
+    }
+    return days;
+}
+
+function groupSchedulesByDayOff(schedules) {
+    const map = { SUN: [], MON: [], TUE: [], WED: [], THU: [] };
+    schedules.forEach((sched, idx) => {
+        const used = computeDayUsage(sched);
+        Object.keys(map).forEach(day => {
+            if (!used.has(day)) map[day].push(idx);
+        });
+    });
+    return map;
+}
+
+function updateResultsSummary() {
+    const totalEl = document.getElementById('total-schedules');
+    const idxEl = document.getElementById('current-index-label');
+    const filterEl = document.getElementById('active-filter-label');
+    const buttons = {
+        SUN: document.getElementById('dayoff-SUN'),
+        MON: document.getElementById('dayoff-MON'),
+        TUE: document.getElementById('dayoff-TUE'),
+        WED: document.getElementById('dayoff-WED'),
+        THU: document.getElementById('dayoff-THU'),
+    };
+
+    const total = (window.allSchedules || []).length;
+    if (totalEl) totalEl.textContent = `Found ${total} schedules`;
+
+    const currentTotal = filteredIndexes ? filteredIndexes.length : total;
+    const displayIdx = currentTotal > 0 ? ( (filteredIndexes ? filteredIndexes.indexOf(viewIndex) : viewIndex) + 1 ) : 0;
+    if (idxEl) idxEl.textContent = currentTotal > 0 ? `Viewing ${displayIdx} / ${currentTotal}` : '–';
+
+    if (filterEl) {
+        filterEl.textContent = activeDayOff ? `Filter: ${activeDayOff} off` : '';
+    }
+
+    // update counts on buttons
+    const groups = groupSchedulesByDayOff(window.allSchedules || []);
+    Object.entries(buttons).forEach(([day, btn]) => {
+        if (!btn) return;
+        const count = groups[day]?.length || 0;
+        const label = day.charAt(0) + day.slice(1).toLowerCase();
+        btn.textContent = `${label} off (${count})`;
+        btn.disabled = count === 0;
+        btn.classList.toggle('active', activeDayOff === day);
+    });
+}
+
+function applyDayOffFilter(day) {
+    activeDayOff = day;
+    const groups = groupSchedulesByDayOff(window.allSchedules || []);
+    filteredIndexes = day ? groups[day] : null;
+    // reset viewIndex to first matching schedule
+    if (filteredIndexes && filteredIndexes.length > 0) {
+        viewIndex = filteredIndexes[0];
+    } else {
+        viewIndex = 0;
+    }
+    // Render based on current filter
+    const schedules = window.allSchedules || [];
+    if (schedules.length === 0) return;
+    const idx = (filteredIndexes && filteredIndexes.length > 0) ? filteredIndexes[0] : 0;
+    renderSchedule(schedules[idx], "schedule-details-container", window.assignedColors || {});
+    updateResultsSummary();
+}
 
 
 
@@ -320,20 +395,34 @@ document.getElementById("SUT-online-import").addEventListener("click", function(
 
 // Back schedule button
 document.getElementById("back").addEventListener("click", function() {
-    viewIndex--;
-    if(viewIndex < 0){
-        viewIndex = allSchedules.length - 1;
+    const schedules = window.allSchedules || [];
+    if (schedules.length === 0) return;
+    if (filteredIndexes && filteredIndexes.length > 0) {
+        const pos = filteredIndexes.indexOf(viewIndex);
+        const prevPos = (pos <= 0 ? filteredIndexes.length - 1 : pos - 1);
+        viewIndex = filteredIndexes[prevPos];
+    } else {
+        viewIndex--;
+        if(viewIndex < 0){ viewIndex = schedules.length - 1; }
     }
-    renderSchedule(allSchedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    updateResultsSummary();
 });
 
 // Next schedule button
 document.getElementById("next").addEventListener("click", function() {
-    viewIndex++;
-    if(viewIndex >= allSchedules.length){
-        viewIndex = 0;
+    const schedules = window.allSchedules || [];
+    if (schedules.length === 0) return;
+    if (filteredIndexes && filteredIndexes.length > 0) {
+        const pos = filteredIndexes.indexOf(viewIndex);
+        const nextPos = (pos >= filteredIndexes.length - 1 ? 0 : pos + 1);
+        viewIndex = filteredIndexes[nextPos];
+    } else {
+        viewIndex++;
+        if(viewIndex >= schedules.length){ viewIndex = 0; }
     }
-    renderSchedule(allSchedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    updateResultsSummary();
 });
 
 // Save schedule button
@@ -485,6 +574,9 @@ document.getElementById("processButton").addEventListener("click", function() {
             // document.getElementById("schedule-details-container").style.display = "block";
             renderSchedule(allSchedules[0], "schedule-details-container", assignedColors);
             viewIndex = 0;
+            filteredIndexes = null;
+            activeDayOff = null;
+            updateResultsSummary();
             showStage('schedule-details-container');
             hideLoadingOverlay();
         };
@@ -501,3 +593,17 @@ document.getElementById("processButton").addEventListener("click", function() {
         hideLoadingOverlay();
     };
 });
+
+// Wire day-off filter buttons
+function wireDayOffButtons() {
+    const ids = ['SUN','MON','TUE','WED','THU'];
+    ids.forEach(day => {
+        const btn = document.getElementById(`dayoff-${day}`);
+        if (btn) btn.addEventListener('click', () => applyDayOffFilter(day));
+    });
+    const clearBtn = document.getElementById('clear-dayoff-filter');
+    if (clearBtn) clearBtn.addEventListener('click', () => applyDayOffFilter(null));
+}
+
+// Ensure buttons are wired once DOM is ready (module executes after HTML load)
+wireDayOffButtons();

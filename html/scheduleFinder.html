@@ -121,6 +121,22 @@
     </div>
     <!-- Schedule confirmation menu -->
     <div id="schedule-details-container" style="display: none;">
+        <div id="results-summary" class="nav-row" style="justify-content: space-between; align-items: center; gap: 12px;">
+            <div>
+                <strong id="total-schedules">Found 0 schedules</strong>
+                <span id="current-index-label" style="margin-left:8px; color:#666;">–</span>
+                <span id="active-filter-label" style="margin-left:12px; color:#2d6cdf;"></span>
+            </div>
+            <div id="day-off-groups" style="display:flex; flex-wrap: wrap; gap:6px; align-items:center;">
+                <span style="opacity:0.8;">Day off:</span>
+                <button id="dayoff-SUN" class="dayoff-btn" type="button">Sun off (0)</button>
+                <button id="dayoff-MON" class="dayoff-btn" type="button">Mon off (0)</button>
+                <button id="dayoff-TUE" class="dayoff-btn" type="button">Tue off (0)</button>
+                <button id="dayoff-WED" class="dayoff-btn" type="button">Wed off (0)</button>
+                <button id="dayoff-THU" class="dayoff-btn" type="button">Thu off (0)</button>
+                <button id="clear-dayoff-filter" type="button">Clear</button>
+            </div>
+        </div>
         <div class="nav-row">
             <button id="back">Back</button>
             <button id="next">Next</button>
