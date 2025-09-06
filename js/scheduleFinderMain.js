@@ -244,7 +244,7 @@ function showSelectedCoursesDetails(courseId) {
             updateTimetablePreview();
         });
         card.addEventListener('mouseenter', () => {
-            renderSchedule([session], 'course-details-container', window.courseColors);
+            renderSchedule([session], 'course-details-container', window.assignedColors || {});
         });
     
         card.addEventListener('mouseleave', () => {
@@ -313,7 +313,7 @@ document.getElementById("back").addEventListener("click", function() {
     if(viewIndex < 0){
         viewIndex = allSchedules.length - 1;
     }
-    renderSchedule(allSchedules[viewIndex], "schedule-details-container", window.courseColors);
+    renderSchedule(allSchedules[viewIndex], "schedule-details-container", window.assignedColors || {});
 });
 
 // Next schedule button
@@ -322,13 +322,13 @@ document.getElementById("next").addEventListener("click", function() {
     if(viewIndex >= allSchedules.length){
         viewIndex = 0;
     }
-    renderSchedule(allSchedules[viewIndex], "schedule-details-container", window.courseColors);
+    renderSchedule(allSchedules[viewIndex], "schedule-details-container", window.assignedColors || {});
 });
 
 // Save schedule button
 document.getElementById("save-schedule-button").addEventListener("click", function() {
     localStorage.setItem('savedSchedule', JSON.stringify(allSchedules[viewIndex]));
-    localStorage.setItem('savedColors', JSON.stringify(window.courseColors));
+    localStorage.setItem('savedColors', JSON.stringify(window.assignedColors || {}));
     showAlert("Schedule saved", "This DOES NOT register you in this course, you need to manually register in SIS!", "mySchedule.html", "View schedule");
 });
 
@@ -387,7 +387,8 @@ document.getElementById("show-mycourse-details-button").addEventListener("click"
     document.getElementById("mycourse-selection-container").style.display = "block";
 });
 
-window.courseColors = [
+// Immutable base palette, per-run assigned colors stored separately
+window.BASE_COURSE_COLORS = [
     ["#F17141", "#FFECAE"],
     ["#FFECAE", "#F17141"],
     ["#702FE5", "#F9CDD1"],
@@ -399,24 +400,33 @@ window.courseColors = [
     ["#1C304F", "#B9D5E6"],
     ["#B9D5E6", "#1C304F"],
 ];
+window.assignedColors = window.assignedColors || {};
+
 // Make schedule button
 document.getElementById("processButton").addEventListener("click", function() {
     const filterData = getSelectedFilters();
     const startTime = Date.now();
-    
-    // Randomly assign colors to selected courses
+
+    if (!window.selectedResults || window.selectedResults.length === 0) {
+        showAlert("No courses selected", "Please select at least one course");
+        return;
+    }
+
+    // Randomly assign colors to selected courses without mutating the base palette
     const assignedColors = {};
-    const availableColors = [...window.courseColors];
+    const availableColors = [...window.BASE_COURSE_COLORS];
     selectedResults.forEach(courseId => {
         const randomIndex = Math.floor(Math.random() * availableColors.length);
         assignedColors[courseId] = availableColors.splice(randomIndex, 1)[0];
         if (availableColors.length === 0) {
-            availableColors.push(...window.courseColors);
+            availableColors.push(...window.BASE_COURSE_COLORS);
         }
     });
-    window.courseColors = assignedColors;
+    window.assignedColors = assignedColors;
+
     worker.postMessage({selectedResults, filterData, coursesData: JSON.parse(localStorage.getItem('coursesData'))});
     showLoadingOverlay("Finding Your Schedule");
+
     worker.onmessage = function(e) {
         let data = e.data;
         if (data.type === "error") {
@@ -425,10 +435,8 @@ document.getElementById("processButton").addEventListener("click", function() {
             hideLoadingOverlay();
             return;
         }
-        
         const timeElapsed = Date.now() - startTime;
-        const minimumLoadTime = 5000; // 10 seconds
-
+        const minimumLoadTime = 5000; // 5 seconds
         const processResults = () => {
             if (data.schedules.length === 0) {
                 showAlert("No schedules found", "Try adjusting your filters");
@@ -443,14 +451,16 @@ document.getElementById("processButton").addEventListener("click", function() {
             viewIndex = 0;
             hideLoadingOverlay();
         };
-
         if (timeElapsed < minimumLoadTime) {
             setTimeout(processResults, minimumLoadTime - timeElapsed);
         } else {
             processResults();
         }
     };
+
     worker.onerror = function(event) {
         console.error("Worker error:", event.message);
+        showAlert("An error happened", "Please try again");
+        hideLoadingOverlay();
     };
 });
