@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Import Schedule • Scheduley</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="icon" type="image/x-icon" href="../assets/images/S.ico" />
+  <style>
+    .container { max-width: 900px; margin: 0 auto; padding: 16px; }
+    .section { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-top: 16px; }
+    .section h3 { margin-top: 0; }
+    .row { display: flex; gap: 12px; align-items: center; }
+    .row > * { flex: 1; }
+    .course-color-grid { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; }
+    .course-pill { padding: 8px 12px; background: #f3f4f6; border-radius: 999px; font-weight: 600; }
+    .muted { color: #6b7280; font-size: 12px; }
+    .btn-row { display: flex; gap: 10px; align-items: center; }
+    .btn { padding: 8px 12px; border-radius: 10px; border: 1px solid #e5e7eb; background: #111827; color: #fff; cursor: pointer; }
+    .btn.secondary { background: #fff; color: #111827; }
+    textarea { width: 100%; min-height: 160px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 13px; }
+    .help { color: #374151; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+  <div class="container">
+    <h2>Import a saved schedule</h2>
+    <p class="help">Paste a JSON value previously stored as <strong>savedSchedule</strong> in your browser's localStorage.</p>
+
+    <div class="section">
+      <h3>1) Paste savedSchedule JSON</h3>
+      <textarea id="schedule-json" placeholder='e.g., [{"course":"CS101","class":"L1","day":"MON","start":"9:00","end":"10:30","location":"A1","lecturer":"Dr. X"}]'></textarea>
+      <div class="btn-row" style="margin-top: 10px;">
+        <button id="load-btn" class="btn">Load schedule</button>
+        <button id="randomize-btn" class="btn secondary" disabled>Randomize colors</button>
+      </div>
+      <div class="help">We will extract unique courses, assign colors, and let you tweak them before saving.</div>
+    </div>
+
+    <div id="colors-section" class="section" style="display:none;">
+      <h3>2) Assign colors</h3>
+      <div id="course-color-list" class="course-color-grid"></div>
+      <div class="btn-row" style="margin-top: 10px;">
+        <button id="save-btn" class="btn" disabled>Save & View in My Schedule</button>
+      </div>
+    </div>
+
+    <div id="errorOverlay" style="display:none;">
+      <div id="Errblur" class="errorMessage">
+        <h2 id="alert-title">Error Occurred!</h2>
+        <p id="alert-text">Something went wrong. Please try again later.</p>
+        <button id="close-alert">Close</button>
+      </div>
+    </div>
+  </div>
+  <div id="footer"></div>
+  <script type="module" src="../js/importSchedule.js"></script>
+</body>
+</html>
