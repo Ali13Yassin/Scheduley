@@ -15,8 +15,8 @@ export function renderSchedule(schedule, containerId, customColors={}) {
     // Clear all previously rendered blocks in this specific container
     container.querySelectorAll('.class-block').forEach(block => block.remove());
 
-    // Ensure a reusable tooltip exists per container (results screen only)
-    const enableTooltip = containerId === 'schedule-details-container';
+    // Ensure a reusable tooltip exists per container (results and mySchedule screens)
+    const enableTooltip = (containerId === 'schedule-details-container' || containerId === 'schedule-container');
     const tooltipId = `class-tooltip-${containerId}`;
     let tooltip = enableTooltip ? container.querySelector(`#${tooltipId}`) : null;
     if (enableTooltip) {
