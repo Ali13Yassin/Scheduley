@@ -388,7 +388,7 @@ function showStage(idToShow) {
 // Online Import schedule buttons
 document.getElementById("SUT-online-import").addEventListener("click", function() {
     showLoadingOverlay("Downloading information");
-    const url = "https://script.google.com/macros/s/AKfycbwTGB60MQj61w-256mYLO75Gnm-kJdddvEXZh2T0ccw1tdPf85XpmKAjhDEm_3IacwE/exec";
+    const url = "https://script.google.com/macros/s/AKfycbzU19SF_yf_b0iZLqzBUapkq4K7bmee9AN7yeW-h34O3Cw7epwbzM50li_kOTgCyJNH/exec";
     fetchCSV(url)
     .then(() => hideLoadingOverlay());
 });

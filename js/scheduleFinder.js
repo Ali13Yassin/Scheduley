@@ -132,7 +132,7 @@ self.onmessage = function(e) {
     }
 };
 function trackRequest(data){
-    const trackingUrl = 'https://script.google.com/macros/s/AKfycbwTGB60MQj61w-256mYLO75Gnm-kJdddvEXZh2T0ccw1tdPf85XpmKAjhDEm_3IacwE/exec';
+    const trackingUrl = 'https://script.google.com/macros/s/AKfycbzU19SF_yf_b0iZLqzBUapkq4K7bmee9AN7yeW-h34O3Cw7epwbzM50li_kOTgCyJNH/exec';
       // Send the tracking data via a POST request
       fetch(trackingUrl, {
         method: 'POST',
