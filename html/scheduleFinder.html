@@ -1,160 +1,350 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scheduley</title>
+
+    <!-- TailwindCSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#FFF5F2', 100: '#FFE8E1', 500: '#CE3602', 600: '#B32F02', 700: '#8B2401' },
+                        success: { 50: '#F0FDF4', 500: '#22C55E', 600: '#16A34A' },
+                    },
+                    fontFamily: { manrope: ['Manrope', 'sans-serif'] },
+                }
+            }
+        }
+    </script>
+
+    <!-- Animate.css for micro-interactions -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+    <!-- Original stylesheets -->
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/scheduleVisuals.css">
     <link rel="icon" type="image/x-icon" href="../assets/images/S.ico">
 </head>
-<body>
+
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
     <div id="navbar"></div>
-<div id="all-container">
-    <div id="center-container" style="display: block;">
-        <!-- Import and data validation stage -->
-        <div id="online-import-container" style="display: block;">
-            <h2>Choose data from existing Universities</h2>
-            <div id="SUT-online-import" class="course-card uni-card">ElSewedy University of Technology</div>
-            <p>Your University isn't here?</p>
-            <button id="upload-button">Upload your data instead</button>
-        </div>
-        <div id="upload-container" style="display: none;">
-            <h2>How this works</h2>
-            <p>Upload a valid csv file containing all the needed course data and we will find you the best schedules</p>
-            <p>You can download the CSV template and fill it with your Universities data</p>
-            <a href="../assets/data-template.csv">Download template</a><br>
-            <input type="file" id="fileInput" accept=".csv">
-            <button id="save-import-button">Next step</button>
-            <p>Your University already here?</p>
-            <button id="backto-online-import-button">Search for it instead!</button>
-        </div>
-        <!-- Course selection stage -->
-        <div id="course-selection-container" style="display: none;">
-            <h2>Choose your courses</h2>
-            <div class="course-search-container">
-                <input type="text" id="course-search-input" class="course-search-box" placeholder="Search by course code or name...">
+
+    <!-- Step Progress Bar -->
+    <div id="step-progress" class="max-w-4xl mx-auto px-4 py-4 mb-2">
+        <div class="flex items-center justify-between relative">
+            <!-- Progress line background -->
+            <div class="absolute top-5 left-[10%] right-[10%] h-0.5 bg-gray-200 -z-0"></div>
+            <!-- Progress line fill -->
+            <div id="progress-fill"
+                class="absolute top-5 left-[10%] h-0.5 bg-brand-500 transition-all duration-500 -z-0" style="width: 0%">
             </div>
-            <div class="grid-container" id="courseGrid"></div>
-            <div class="nav-row">
-                <button id="course-selection-back">Back</button>
-                <button id="show-mycourse-details-button">Next</button>
+
+            <!-- Steps -->
+            <div class="step-item active" data-step="1">
+                <div class="step-circle">1</div>
+                <span class="step-label">Import</span>
             </div>
-        </div>
-        <!-- Course details selection menu -->
-        <div id="mycourse-selection-container" style="display: none;">
-            <h2>Choose a course to edit</h2>
-            <div class="grid-container" id="mycourseGrid"></div>
-            <div class="nav-row">
-                <button id="mycourse-back">Back</button>
-                <button id="show-filter-menu-button">Next</button>
+            <div class="step-item" data-step="2">
+                <div class="step-circle">2</div>
+                <span class="step-label">Select</span>
+            </div>
+            <div class="step-item" data-step="3">
+                <div class="step-circle">3</div>
+                <span class="step-label">Edit</span>
+            </div>
+            <div class="step-item" data-step="4">
+                <div class="step-circle">4</div>
+                <span class="step-label">Filters</span>
+            </div>
+            <div class="step-item" data-step="5">
+                <div class="step-circle">5</div>
+                <span class="step-label">Schedule</span>
             </div>
         </div>
-        <!-- Course details menu -->
-        <div id="course-details-container" style="display: none;">
-            <h2>Edit course</h2>
-            <p>Useful when a session has no seats available</p>
-            <div class="container">
-                <div id="left-panel" class="left-panel">
-                    <input type="text" class="search-box" placeholder="Search courses...">
+    </div>
+
+    <div id="all-container" class="max-w-6xl mx-auto px-4 pb-24">
+        <div id="center-container" style="display: block;">
+            <!-- Import and data validation stage -->
+            <div id="online-import-container" style="display: block;">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Choose data from existing Universities</h2>
+                <div id="SUT-online-import" class="course-card uni-card">ElSewedy University of Technology</div>
+                <p class="text-gray-600 mt-6 mb-2">Your University isn't here?</p>
+                <button id="upload-button" class="btn-secondary">Upload your data instead</button>
+            </div>
+            <div id="upload-container" style="display: none;">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">How this works</h2>
+                <p class="text-gray-600 mb-2">Upload a valid csv file containing all the needed course data and we will
+                    find you the best schedules</p>
+                <p class="text-gray-600 mb-4">You can download the CSV template and fill it with your Universities data
+                </p>
+                <a href="../assets/data-template.csv" class="text-brand-500 hover:underline font-medium">Download
+                    template</a><br>
+                <input type="file" id="fileInput" accept=".csv" class="mt-4 mb-4">
+                <button id="save-import-button">Next step</button>
+                <p class="text-gray-600 mt-6 mb-2">Your University already here?</p>
+                <button id="backto-online-import-button" class="btn-secondary">Search for it instead!</button>
+            </div>
+
+            <!-- Course selection stage -->
+            <div id="course-selection-container" style="display: none;">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
+                    <h2 class="text-2xl font-bold text-gray-900">Choose your courses</h2>
+                    <span id="selection-counter"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-brand-50 text-brand-600 rounded-full font-semibold text-sm">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                        </svg>
+                        <span id="selected-count">0</span> selected
+                    </span>
                 </div>
-        
-                <div id="right-panel"></div>
+
+                <!-- Enhanced search -->
+                <div class="course-search-container relative mb-6">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input type="text" id="course-search-input" class="course-search-box pl-12"
+                        placeholder="Search by course code or name...">
+                    <span id="search-results-count"
+                        class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-500"></span>
+                </div>
+
+                <div class="grid-container" id="courseGrid"></div>
                 <div class="nav-row">
-                    <button id="course-details-back">Back</button>
-                    <button id="save-mycourse-details">Save</button>
+                    <button id="course-selection-back" class="btn-secondary">Back</button>
+                    <button id="show-mycourse-details-button">Next</button>
+                </div>
+            </div>
+
+            <!-- Course details selection menu -->
+            <div id="mycourse-selection-container" style="display: none;">
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Choose a course to edit</h2>
+                <p class="text-gray-500 mb-4">Click on a course to remove specific sessions (e.g., full lectures)</p>
+                <div class="grid-container" id="mycourseGrid"></div>
+                <div class="nav-row">
+                    <button id="mycourse-back" class="btn-secondary">Back</button>
+                    <button id="show-filter-menu-button">Next</button>
+                </div>
+            </div>
+
+            <!-- Course details menu -->
+            <div id="course-details-container" style="display: none;">
+                <!-- Info banner explaining what this screen does -->
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <div>
+                            <h3 class="font-semibold text-blue-800">Remove Unavailable Sessions</h3>
+                            <p class="text-sm text-blue-700 mt-1">
+                                Click on any session to <strong>exclude it</strong> from schedule generation.
+                                Use this when a lecture is full or conflicts with your commitments.
+                                <br><span class="text-blue-500">💡 Hover over a session to preview its time slot on the
+                                    calendar.</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Edit course sessions</h2>
+                <div class="container">
+                    <div id="left-panel" class="left-panel">
+                        <!-- Sessions will be rendered here by JS -->
+                    </div>
+
+                    <div id="right-panel">
+                        <div class="empty-preview text-center text-gray-400 py-20">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p class="text-lg">Hover over a session to preview</p>
+                        </div>
+                    </div>
+                    <div class="nav-row">
+                        <button id="course-details-back" class="btn-secondary">Back</button>
+                        <button id="save-mycourse-details">Save</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters menu -->
+            <div id="filter-selection-menu" style="display: none;">
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Customize Your Schedule</h2>
+                <p class="text-gray-500 mb-8">Choose your preferences and we'll find the best schedules for you.</p>
+
+                <div id="filter-container" class="space-y-6">
+                    <div id="filter-1" class="filter-group">
+                        <div class="filter-group-header">
+                            <svg class="w-5 h-5 text-brand-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <h3>Number of days</h3>
+                        </div>
+                        <div class="filter-chips">
+                            <input type="radio" id="numOfDaysFilter-any-checkbox" name="numOfDays" value="any" checked>
+                            <label for="numOfDaysFilter-any-checkbox" class="filter-chip">Any</label>
+                            <input type="radio" id="numOfDaysFilter-1days-checkbox" name="numOfDays" value="1">
+                            <label for="numOfDaysFilter-1days-checkbox" class="filter-chip">1 Day</label>
+                            <input type="radio" id="numOfDaysFilter-2days-checkbox" name="numOfDays" value="2">
+                            <label for="numOfDaysFilter-2days-checkbox" class="filter-chip">2 Days</label>
+                            <input type="radio" id="numOfDaysFilter-3days-checkbox" name="numOfDays" value="3">
+                            <label for="numOfDaysFilter-3days-checkbox" class="filter-chip">3 Days</label>
+                            <input type="radio" id="numOfDaysFilter-4days-checkbox" name="numOfDays" value="4">
+                            <label for="numOfDaysFilter-4days-checkbox" class="filter-chip">4 Days</label>
+                            <input type="radio" id="numOfDaysFilter-5days-checkbox" name="numOfDays" value="5">
+                            <label for="numOfDaysFilter-5days-checkbox" class="filter-chip">5 Days</label>
+                        </div>
+                    </div>
+                    <div id="filter-2" class="filter-group">
+                        <div class="filter-group-header">
+                            <svg class="w-5 h-5 text-brand-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <h3>Have at least 1 hour gap</h3>
+                        </div>
+                        <div class="filter-chips">
+                            <input type="radio" id="findSchedulesWithGaps-false-checkbox" name="findSchedulesWithGaps"
+                                value="false" checked>
+                            <label for="findSchedulesWithGaps-false-checkbox" class="filter-chip">Doesn't matter</label>
+                            <input type="radio" id="findSchedulesWithGaps-true-checkbox" name="findSchedulesWithGaps"
+                                value="true">
+                            <label for="findSchedulesWithGaps-true-checkbox" class="filter-chip">Yes</label>
+                        </div>
+                    </div>
+                    <div id="filter-3" class="filter-group">
+                        <div class="filter-group-header">
+                            <svg class="w-5 h-5 text-brand-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                            </svg>
+                            <h3>Have labs after courses</h3>
+                        </div>
+                        <div class="filter-chips">
+                            <input type="radio" id="checkLabOrTutorialAfterLecture-false-checkbox"
+                                name="checkLabOrTutorialAfterLecture" value="false" checked>
+                            <label for="checkLabOrTutorialAfterLecture-false-checkbox" class="filter-chip">Doesn't
+                                matter</label>
+                            <input type="radio" id="checkLabOrTutorialAfterLecture-true-checkbox"
+                                name="checkLabOrTutorialAfterLecture" value="true">
+                            <label for="checkLabOrTutorialAfterLecture-true-checkbox" class="filter-chip">Yes</label>
+                        </div>
+                    </div>
+                    <div id="filter-4" class="filter-group">
+                        <div class="filter-group-header">
+                            <svg class="w-5 h-5 text-brand-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <h3>Remove days with 1 session</h3>
+                        </div>
+                        <div class="filter-chips">
+                            <input type="radio" id="removeSingleSessionDays-false-checkbox"
+                                name="removeSingleSessionDays" value="false" checked>
+                            <label for="removeSingleSessionDays-false-checkbox" class="filter-chip">Doesn't
+                                matter</label>
+                            <input type="radio" id="removeSingleSessionDays-true-checkbox"
+                                name="removeSingleSessionDays" value="true">
+                            <label for="removeSingleSessionDays-true-checkbox" class="filter-chip">Yes</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generate button (prominent CTA) -->
+                <div class="mt-10 text-center">
+                    <button id="processButton" class="generate-btn">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Generate Schedule
+                    </button>
+                </div>
+
+                <div class="nav-row mt-6">
+                    <button id="filter-back" class="btn-secondary">Back</button>
                 </div>
             </div>
         </div>
-        <!-- Filters menu -->
-         <div id="filter-selection-menu" style="display: none;">
-            <h2>Filters</h2>
-            <div id="filter-container">
-                <div id="filter-1">
-                    <h3>Number of days</h3>
-                    <input type="radio" id="numOfDaysFilter-any-checkbox" name="numOfDays" value="any" checked>
-                    <label for="numOfDaysFilter-any-checkbox">Any</label>
-                    <input type="radio" id="numOfDaysFilter-1days-checkbox" name="numOfDays" value="1">
-                    <label for="numOfDaysFilter-1days-checkbox">1 Day</label>
-                    <input type="radio" id="numOfDaysFilter-2days-checkbox" name="numOfDays" value="2">
-                    <label for="numOfDaysFilter-2days-checkbox">2 Days</label>
-                    <input type="radio" id="numOfDaysFilter-3days-checkbox" name="numOfDays" value="3">
-                    <label for="numOfDaysFilter-3days-checkbox">3 Days</label>
-                    <input type="radio" id="numOfDaysFilter-4days-checkbox" name="numOfDays" value="4">
-                    <label for="numOfDaysFilter-4days-checkbox">4 Days</label>
-                    <input type="radio" id="numOfDaysFilter-5days-checkbox" name="numOfDays" value="5">
-                    <label for="numOfDaysFilter-5days-checkbox">5 Days</label>
+
+        <div id="processOverlay">
+            <div class="processMessage">
+                <h2 id="process-title">Finding your Schedule</h2>
+            </div>
+        </div>
+
+        <!-- Schedule confirmation menu -->
+        <div id="schedule-details-container" style="display: none;">
+            <div id="results-summary">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <strong id="total-schedules" class="text-lg">Found 0 schedules</strong>
+                    <span id="current-index-label" class="text-gray-500">–</span>
+                    <span id="active-filter-label" class="text-blue-600 font-medium"></span>
                 </div>
-                <div id="filter-2">
-                    <h3>Have at least 1 hour gap</h3>
-                    <input type="radio" id="findSchedulesWithGaps-false-checkbox" name="findSchedulesWithGaps" value="false" checked>
-                    <label for="findSchedulesWithGaps-false-checkbox">Doesn't matter</label>
-                    <input type="radio" id="findSchedulesWithGaps-true-checkbox" name="findSchedulesWithGaps" value="true">
-                    <label for="findSchedulesWithGaps-true-checkbox">Yes</label>
-                </div>
-                <div id="filter-3">
-                    <h3>Have labs after courses</h3>
-                    <input type="radio" id="checkLabOrTutorialAfterLecture-false-checkbox" name="checkLabOrTutorialAfterLecture" value="false" checked>
-                    <label for="checkLabOrTutorialAfterLecture-false-checkbox">Doesn't matter</label>
-                    <input type="radio" id="checkLabOrTutorialAfterLecture-true-checkbox" name="checkLabOrTutorialAfterLecture" value="true">
-                    <label for="checkLabOrTutorialAfterLecture-true-checkbox">Yes</label>
-                </div>
-                <div id="filter-4">
-                    <h3>Remove days with 1 sessions</h3>
-                    <input type="radio" id="removeSingleSessionDays-false-checkbox" name="removeSingleSessionDays" value="false" checked>
-                    <label for="removeSingleSessionDays-false-checkbox">Doesn't matter</label>
-                    <input type="radio" id="removeSingleSessionDays-true-checkbox" name="removeSingleSessionDays" value="true">
-                    <label for="removeSingleSessionDays-true-checkbox">Yes</label>
+                <div id="day-off-groups" class="flex flex-wrap gap-2 items-center mt-4 sm:mt-0">
+                    <span class="text-gray-500 text-sm">Day off:</span>
+                    <button id="dayoff-SUN" class="dayoff-btn" type="button">Sun off (0)</button>
+                    <button id="dayoff-MON" class="dayoff-btn" type="button">Mon off (0)</button>
+                    <button id="dayoff-TUE" class="dayoff-btn" type="button">Tue off (0)</button>
+                    <button id="dayoff-WED" class="dayoff-btn" type="button">Wed off (0)</button>
+                    <button id="dayoff-THU" class="dayoff-btn" type="button">Thu off (0)</button>
+                    <button id="clear-dayoff-filter" type="button"
+                        class="text-sm text-gray-500 hover:text-brand-500">Clear</button>
                 </div>
             </div>
-            <div class="nav-row">
-                <button id="filter-back">Back</button>
-                <button id="processButton">Generate Schedule</button>
+            <div class="nav-row schedule-nav">
+                <button id="back" class="btn-nav">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Previous
+                </button>
+                <button id="next" class="btn-nav">
+                    Next
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+                <button id="schedule-stage-back" class="btn-secondary ml-auto">Back to filters</button>
             </div>
-         </div>
+            <div id="schedule-container"></div>
+            <button id="save-schedule-button" class="save-schedule-btn">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+                Save schedule
+            </button>
+        </div>
+
+        <div id="errorOverlay">
+            <div id="Errblur" class="errorMessage">
+                <h2 id="alert-title">Error Occurred!</h2>
+                <p id="alert-text">Something went wrong. Please try again later.</p>
+                <button id="close-alert">Close</button>
+            </div>
+        </div>
     </div>
-    <div id="processOverlay">
-        <div class="processMessage">
-            <h2 id="process-title">Finding your Schedule</h2>
-            <!-- <p id="process-text">Something went wrong. Please try again later.</p> -->
-        </div>
-    </div>
-    <!-- Schedule confirmation menu -->
-    <div id="schedule-details-container" style="display: none;">
-        <div id="results-summary" class="nav-row" style="justify-content: space-between; align-items: center; gap: 12px;">
-            <div>
-                <strong id="total-schedules">Found 0 schedules</strong>
-                <span id="current-index-label" style="margin-left:8px; color:#666;">–</span>
-                <span id="active-filter-label" style="margin-left:12px; color:#2d6cdf;"></span>
-            </div>
-            <div id="day-off-groups" style="display:flex; flex-wrap: wrap; gap:6px; align-items:center;">
-                <span style="opacity:0.8;">Day off:</span>
-                <button id="dayoff-SUN" class="dayoff-btn" type="button">Sun off (0)</button>
-                <button id="dayoff-MON" class="dayoff-btn" type="button">Mon off (0)</button>
-                <button id="dayoff-TUE" class="dayoff-btn" type="button">Tue off (0)</button>
-                <button id="dayoff-WED" class="dayoff-btn" type="button">Wed off (0)</button>
-                <button id="dayoff-THU" class="dayoff-btn" type="button">Thu off (0)</button>
-                <button id="clear-dayoff-filter" type="button">Clear</button>
-            </div>
-        </div>
-        <div class="nav-row">
-            <button id="back">Back</button>
-            <button id="next">Next</button>
-            <button id="schedule-stage-back">Back to filters</button>
-        </div>
-        <!-- Should be imported first -->
-        <div id="schedule-container"></div>
-        <button id="save-schedule-button">Save schedule</button>
-    </div>
-    <div id="errorOverlay">
-        <div id="Errblur" class="errorMessage">
-            <h2 id="alert-title">Error Occurred!</h2>
-            <p id="alert-text">Something went wrong. Please try again later.</p>
-            <button id="close-alert">Close</button>
-        </div>
-    </div>
-</div>
     <div id="footer"></div>
     <script type="module" src="../js/scheduleFinderMain.js"></script>
 </body>
+
 </html>

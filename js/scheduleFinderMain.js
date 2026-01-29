@@ -17,6 +17,66 @@ if (isMobile) {
 
 window.selectedResults = null; //Temporary to check if courses are selected
 
+// ===================================
+// UI ENHANCEMENT FUNCTIONS
+// ===================================
+
+// Update selection counter badge
+function updateSelectionCounter() {
+    const count = window.selectedResults?.length || 0;
+    const countEl = document.getElementById('selected-count');
+    const counterEl = document.getElementById('selection-counter');
+    if (countEl) countEl.textContent = count;
+    if (counterEl) {
+        counterEl.classList.add('animate__animated', 'animate__pulse');
+        setTimeout(() => counterEl.classList.remove('animate__animated', 'animate__pulse'), 300);
+    }
+}
+
+// Update search results count
+function updateSearchResultsCount(shown, total) {
+    const el = document.getElementById('search-results-count');
+    if (!el) return;
+    if (shown === total) {
+        el.textContent = `${total} courses`;
+    } else {
+        el.textContent = `${shown} of ${total}`;
+    }
+}
+
+// Update step progress wizard
+const STEP_MAP = {
+    'online-import-container': 1,
+    'upload-container': 1,
+    'course-selection-container': 2,
+    'mycourse-selection-container': 3,
+    'course-details-container': 3,
+    'filter-selection-menu': 4,
+    'schedule-details-container': 5
+};
+
+function updateStepProgress(stageId) {
+    const currentStep = STEP_MAP[stageId] || 1;
+    const stepItems = document.querySelectorAll('.step-item');
+    const progressFill = document.getElementById('progress-fill');
+
+    stepItems.forEach((item, index) => {
+        const stepNum = index + 1;
+        item.classList.remove('active', 'completed');
+        if (stepNum < currentStep) {
+            item.classList.add('completed');
+        } else if (stepNum === currentStep) {
+            item.classList.add('active');
+        }
+    });
+
+    // Update progress bar width (0% to 80% based on step 1-5)
+    if (progressFill) {
+        const percent = ((currentStep - 1) / 4) * 80;
+        progressFill.style.width = `${percent}%`;
+    }
+}
+
 // Load the navbar, schedule visuals, and footer
 fetch('nav.html')
     .then(response => response.text())
@@ -183,8 +243,12 @@ export function loadCourseCardView(courses, divId) {
                     } else {
                         selectedCourses.add(courseId); // Add to selected set
                         card.classList.add('selected'); // Highlight card
+                        // Add pop animation
+                        card.classList.add('animate__animated', 'animate__pulse');
+                        setTimeout(() => card.classList.remove('animate__animated', 'animate__pulse'), 300);
                     }
                     window.selectedResults = Array.from(selectedCourses); // persist globally
+                    updateSelectionCounter();
                 });
             } else {
                 card.addEventListener('click', () => {
@@ -201,6 +265,13 @@ export function loadCourseCardView(courses, divId) {
     // Initial render
     renderCourses(courses);
 
+    // Update initial counts for course selection grid
+    if (divId === 'courseGrid') {
+        const totalCount = Object.keys(courses).length;
+        updateSearchResultsCount(totalCount, totalCount);
+        updateSelectionCounter();
+    }
+
     // Add search functionality only for courseGrid
     if (divId === "courseGrid") {
         const searchInput = document.getElementById('course-search-input');
@@ -209,8 +280,10 @@ export function loadCourseCardView(courses, divId) {
             searchInput.oninput = (e) => {
                 const searchTerm = e.target.value.toLowerCase().trim();
                 const source = window.originalCoursesData || {};
+                const totalCount = Object.keys(source).length;
                 if (searchTerm === '') {
                     renderCourses(source);
+                    updateSearchResultsCount(totalCount, totalCount);
                 } else {
                     const filteredCourses = {};
                     Object.entries(source).forEach(([courseId, course]) => {
@@ -226,6 +299,7 @@ export function loadCourseCardView(courses, divId) {
                         }
                     });
                     renderCourses(filteredCourses);
+                    updateSearchResultsCount(Object.keys(filteredCourses).length, totalCount);
                 }
             };
         }
@@ -240,8 +314,7 @@ async function fetchCSV(url) {
     localStorage.removeItem('courseDetails');
     localStorage.removeItem('coursesDataDate');
     parseCSV(text);
-    document.getElementById("online-import-container").style.display = "none";
-    document.getElementById("course-selection-container").style.display = "block";
+    showStage('course-selection-container');
 }
 
 function showLoadingOverlay(text) {
@@ -354,7 +427,9 @@ function showSelectedCoursesDetails(courseId) {
     if (courseDetails.lectures && courseDetails.lectures.length > 0) {
         const lectureHeader = document.createElement('div');
         lectureHeader.className = 'session-type-header';
-        lectureHeader.textContent = 'Lectures';
+        lectureHeader.style.backgroundColor = '#DBEAFE';
+        lectureHeader.style.color = '#1E40AF';
+        lectureHeader.innerHTML = '<svg style="width:16px;height:16px;margin-right:6px" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"/></svg> Lectures';
         container.appendChild(lectureHeader);
 
         courseDetails.lectures.forEach((lecture, index) => {
@@ -366,7 +441,9 @@ function showSelectedCoursesDetails(courseId) {
     if (courseDetails.labs && courseDetails.labs.length > 0) {
         const labHeader = document.createElement('div');
         labHeader.className = 'session-type-header';
-        labHeader.textContent = 'Labs';
+        labHeader.style.backgroundColor = '#D1FAE5';
+        labHeader.style.color = '#065F46';
+        labHeader.innerHTML = '<svg style="width:16px;height:16px;margin-right:6px" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7 2a1 1 0 00-.707 1.707L7 4.414v3.758a1 1 0 01-.293.707l-4 4C.817 14.769 2.156 18 4.828 18h10.344c2.672 0 4.011-3.231 2.122-5.121l-4-4A1 1 0 0113 8.172V4.414l.707-.707A1 1 0 0013 2H7zm2 6.172V4h2v4.172a3 3 0 00.879 2.12l1.027 1.028a4 4 0 00-2.171.102l-.47.156a4 4 0 01-2.53 0l-.563-.187a1.994 1.994 0 00-.114-.035l1.063-1.063A3 3 0 009 8.172z" clip-rule="evenodd"/></svg> Labs';
         container.appendChild(labHeader);
 
         courseDetails.labs.forEach((lab, index) => {
@@ -378,7 +455,9 @@ function showSelectedCoursesDetails(courseId) {
     if (courseDetails.tutorials && courseDetails.tutorials.length > 0) {
         const tutorialHeader = document.createElement('div');
         tutorialHeader.className = 'session-type-header';
-        tutorialHeader.textContent = 'Tutorials';
+        tutorialHeader.style.backgroundColor = '#EDE9FE';
+        tutorialHeader.style.color = '#5B21B6';
+        tutorialHeader.innerHTML = '<svg style="width:16px;height:16px;margin-right:6px" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg> Tutorials';
         container.appendChild(tutorialHeader);
 
         courseDetails.tutorials.forEach((tutorial, index) => {
@@ -410,6 +489,8 @@ function showStage(idToShow) {
         if (!el) return;
         el.style.display = (id === idToShow) ? 'block' : 'none';
     });
+    // Update step progress
+    updateStepProgress(idToShow);
 }
 
 // Schedule navigation buttons
