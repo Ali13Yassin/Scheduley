@@ -1,17 +1,13 @@
 import { showAlert } from './alert.js';
 
 // Base palette (same as scheduleFinderMain)
+// Steel Red, Fantasy Orange, Leila, Aesthetic Teal, Light Ocean Green
 const BASE_COURSE_COLORS = [
-  ["#F17141", "#FFECAE"],
-  ["#FFECAE", "#F17141"],
-  ["#702FE5", "#F9CDD1"],
-  ["#25092E", "#F2C0DD"],
-  ["#F2C0DD", "#25092E"],
-  ["#1F3FC3", "#EFEFD7"],
-  ["#EFEFD7", "#1F3FC3"],
-  ["#475E3D", "#B9D5E6"],
-  ["#1C304F", "#B9D5E6"],
-  ["#B9D5E6", "#1C304F"],
+  ["#D74C4C", "#FFFFFF"],  // Steel Red
+  ["#F49729", "#FFFFFF"],  // Fantasy Orange
+  ["#27284E", "#FFFFFF"],  // Leila (dark blue)
+  ["#1A9399", "#FFFFFF"],  // Aesthetic Teal
+  ["#7CCBA9", "#27284E"],  // Light Ocean Green (dark text)
 ];
 
 // Load navbar/footer
@@ -51,11 +47,11 @@ function renderColorEditor(courseKeys) {
 
     const bg = document.createElement('input');
     bg.type = 'color';
-    bg.value = assignedColors[key]?.[0] || '#F17141';
+    bg.value = assignedColors[key]?.[0] || '#D74C4C';
 
     const fg = document.createElement('input');
     fg.type = 'color';
-    fg.value = assignedColors[key]?.[1] || '#FFECAE';
+    fg.value = assignedColors[key]?.[1] || '#FFFFFF';
 
     const preview = document.createElement('div');
     preview.textContent = 'Preview';

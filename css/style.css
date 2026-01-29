@@ -14,14 +14,23 @@
    BASE STYLES
    =================================== */
 
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     font-family: 'Manrope', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+    min-height: 100vh;
 }
 
 #all-container {
     min-height: 100vh;
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 /* ===================================
@@ -37,8 +46,8 @@ body {
 }
 
 .step-circle {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background-color: #E5E7EB;
     color: #6B7280;
@@ -46,16 +55,15 @@ body {
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     transition: all 0.3s ease;
-    border: 3px solid transparent;
+    border: 2px solid transparent;
 }
 
 .step-item.active .step-circle {
     background-color: #CE3602;
     color: white;
     box-shadow: 0 4px 14px rgba(206, 54, 2, 0.4);
-    border-color: #FFE8E1;
 }
 
 .step-item.completed .step-circle {
@@ -64,8 +72,8 @@ body {
 }
 
 .step-label {
-    margin-top: 8px;
-    font-size: 12px;
+    margin-top: 6px;
+    font-size: 11px;
     font-weight: 500;
     color: #9CA3AF;
     transition: all 0.3s ease;
@@ -87,7 +95,7 @@ body {
 button {
     background-color: #CE3602;
     color: #fff;
-    padding: 12px 20px;
+    padding: 10px 18px;
     border-radius: 10px;
     border: none;
     outline: none;
@@ -103,8 +111,8 @@ button {
 
 button:hover {
     background-color: #E84003;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(206, 54, 2, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(206, 54, 2, 0.25);
 }
 
 button:active {
@@ -114,7 +122,6 @@ button:active {
 
 button:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(206, 54, 2, 0.3);
 }
 
 .btn-secondary {
@@ -124,398 +131,120 @@ button:focus {
 
 .btn-secondary:hover {
     background-color: #E5E7EB;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.btn-nav {
+/* Navigation buttons - compact and styled */
+.btn-nav,
+#back,
+#next,
+#schedule-stage-back {
     background-color: white;
     color: #CE3602;
     border: 2px solid #CE3602;
-    padding: 10px 16px;
+    padding: 8px 16px;
+    font-size: 13px;
+    border-radius: 8px;
 }
 
-.btn-nav:hover {
+.btn-nav:hover,
+#back:hover,
+#next:hover,
+#schedule-stage-back:hover {
     background-color: #CE3602;
     color: white;
+    transform: translateY(0);
 }
 
-/* Generate button - prominent CTA */
-.generate-btn {
+/* Schedule navigation row - compact inline */
+.schedule-nav-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Generate button - WHITE TEXT */
+.generate-btn,
+#processButton {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 32px;
-    font-size: 18px;
+    gap: 10px;
+    padding: 14px 28px;
+    font-size: 16px;
     font-weight: 700;
+    color: white !important;
     background: linear-gradient(135deg, #CE3602 0%, #E84003 100%);
-    border-radius: 14px;
-    box-shadow: 0 8px 24px rgba(206, 54, 2, 0.4);
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(206, 54, 2, 0.35);
     transition: all 0.3s ease;
 }
 
-.generate-btn:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 12px 32px rgba(206, 54, 2, 0.5);
-}
-
-.save-schedule-btn {
-    margin-top: 20px;
-    width: 100%;
-    padding: 16px;
-    font-size: 16px;
-    background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
-    border-radius: 12px;
-}
-
-.save-schedule-btn:hover {
-    box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
-}
-
-/* ===================================
-   NAVIGATION ROW
-   =================================== */
-
-.nav-row {
-    display: flex;
-    gap: 12px;
-    margin-top: 20px;
-    flex-wrap: wrap;
-}
-
-.schedule-nav {
-    background: white;
-    padding: 16px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    margin-bottom: 20px;
-}
-
-/* ===================================
-   COURSE CARDS GRID
-   =================================== */
-
-.grid-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-    padding: 16px 0;
-}
-
-.course-card {
-    background: linear-gradient(135deg, #CE3602 0%, #B32F02 100%);
-    color: #fff;
-    border-radius: 14px;
-    padding: 16px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    border: 3px solid transparent;
-    box-shadow: 0 4px 12px rgba(206, 54, 2, 0.2);
-}
-
-.course-card:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 24px rgba(206, 54, 2, 0.3);
-}
-
-/* Selected card - GREEN with checkmark */
-.course-card.selected {
-    background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
-    border-color: #86EFAC;
-    color: white;
-    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.35);
-}
-
-/* Checkmark badge */
-.course-card.selected::before {
-    content: '';
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 28px;
-    height: 28px;
-    background-color: white;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2322C55E'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'/%3E%3C/svg%3E");
-    background-size: 18px;
-    background-repeat: no-repeat;
-    background-position: center;
-    animation: checkPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-@keyframes checkPop {
-    0% {
-        transform: scale(0) rotate(-45deg);
-        opacity: 0;
-    }
-
-    100% {
-        transform: scale(1) rotate(0);
-        opacity: 1;
-    }
-}
-
-.course-card-title {
-    font-weight: 700;
-    font-size: 15px;
-    margin-bottom: 8px;
-    line-height: 1.3;
-}
-
-.course-card-code {
-    margin-bottom: 4px;
-    font-size: 13px;
-    opacity: 0.9;
-}
-
-.course-card-details {
-    font-size: 12px;
-    opacity: 0.8;
-}
-
-/* ===================================
-   UNIVERSITY CARD
-   =================================== */
-
-.uni-card {
-    width: 320px;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 18px;
-    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
-    color: white;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
-    transition: all 0.3s ease;
-}
-
-.uni-card:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 32px rgba(99, 102, 241, 0.45);
-    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-}
-
-/* ===================================
-   SEARCH BOX
-   =================================== */
-
-.course-search-container {
-    display: block;
-    margin-bottom: 24px;
-}
-
-.course-search-box {
-    width: 100%;
-    max-width: 100%;
-    padding: 14px 16px;
-    padding-left: 48px;
-    border: 2px solid #E5E7EB;
-    border-radius: 12px;
-    background-color: #fff;
-    font-size: 16px;
-    font-family: 'Manrope', sans-serif;
-    outline: none;
-    transition: all 0.3s ease;
-    box-sizing: border-box;
-}
-
-.course-search-box:focus {
-    border-color: #CE3602;
-    box-shadow: 0 0 0 4px rgba(206, 54, 2, 0.1);
-}
-
-.course-search-box::placeholder {
-    color: #9CA3AF;
-}
-
-/* ===================================
-   COURSE DETAILS / EDIT PAGE
-   =================================== */
-
-.container {
-    display: grid;
-    grid-template-columns: 35% 65%;
-    gap: 24px;
-}
-
-.left-panel {
-    background: #F9FAFB;
-    border-radius: 16px;
-    padding: 16px;
-    max-height: 60vh;
-    overflow-y: auto;
-}
-
-/* Session type headers */
-.session-type-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 10px 12px;
-    margin-bottom: 12px;
-    border-radius: 10px;
-}
-
-/* Session cards in left panel */
-#left-panel .course-card {
-    background: white;
-    border: 2px solid #E5E7EB;
-    color: #374151;
-    margin-bottom: 10px;
-    padding: 14px;
-    text-align: left;
-    font-size: 13px;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-#left-panel .course-card:hover {
-    border-color: #CE3602;
-    box-shadow: 0 4px 12px rgba(206, 54, 2, 0.15);
+.generate-btn:hover,
+#processButton:hover {
     transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(206, 54, 2, 0.45);
 }
 
-/* Excluded session styling */
-#left-panel .course-card.selected {
-    background: #FEF2F2;
-    border-color: #FCA5A5;
-    color: #991B1B;
-    opacity: 0.8;
-}
-
-#left-panel .course-card.selected::before {
-    display: none;
-}
-
-#left-panel .course-card.selected::after {
-    content: 'EXCLUDED';
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    font-size: 9px;
-    font-weight: 700;
-    color: #DC2626;
-    background: #FEE2E2;
-    padding: 3px 8px;
-    border-radius: 6px;
-}
-
-.empty-preview {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 300px;
-}
-
-/* ===================================
-   FILTER SECTION
-   =================================== */
-
-.filter-group {
-    background: white;
-    padding: 20px 24px;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    border: 1px solid #F3F4F6;
-}
-
-.filter-group-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.filter-group-header h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: #1F2937;
-}
-
-.filter-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-/* Hide native radio buttons */
-.filter-chips input[type="radio"] {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-/* Filter chip labels */
-.filter-chip {
-    display: inline-flex;
-    align-items: center;
+/* Save schedule button - compact */
+.save-schedule-btn,
+#save-schedule-button {
+    width: auto;
     padding: 10px 20px;
-    border-radius: 50px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    background-color: #F3F4F6;
-    color: #4B5563;
-    border: 2px solid transparent;
-    transition: all 0.2s ease;
-}
-
-.filter-chip:hover {
-    background-color: #E5E7EB;
-    border-color: #D1D5DB;
-}
-
-/* Active/checked state */
-input[type="radio"]:checked+.filter-chip {
-    background-color: #CE3602;
+    font-size: 13px;
+    font-weight: 600;
     color: white;
-    border-color: #CE3602;
-    box-shadow: 0 4px 12px rgba(206, 54, 2, 0.3);
+    background: linear-gradient(135deg, #1A9399 0%, #047857 100%);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(26, 147, 153, 0.3);
+    margin-top: 12px;
 }
 
-/* Focus state for accessibility */
-input[type="radio"]:focus+.filter-chip {
-    box-shadow: 0 0 0 3px rgba(206, 54, 2, 0.3);
+.save-schedule-btn:hover,
+#save-schedule-button:hover {
+    box-shadow: 0 4px 12px rgba(26, 147, 153, 0.4);
+    transform: translateY(-1px);
 }
 
 /* ===================================
-   RESULTS SUMMARY
+   SCHEDULE RESULTS HEADER
    =================================== */
 
 #results-summary {
     background: white;
-    padding: 20px;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    margin-bottom: 20px;
+    padding: 16px 20px;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    margin-bottom: 16px;
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 }
 
-/* Day off buttons */
-.dayoff-btn {
-    padding: 8px 14px;
-    font-size: 13px;
+#results-summary h3,
+#total-schedules {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1F2937;
+}
+
+#current-index-label {
+    font-size: 14px;
+    color: #6B7280;
     font-weight: 500;
-    border-radius: 10px;
+}
+
+/* Day off buttons - compact */
+.dayoff-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 8px;
     background: white;
-    border: 2px solid #E5E7EB;
+    border: 1px solid #E5E7EB;
     color: #4B5563;
     transition: all 0.2s ease;
 }
@@ -532,6 +261,305 @@ input[type="radio"]:focus+.filter-chip {
     background: #CE3602;
     border-color: #CE3602;
     color: white;
+}
+
+.dayoff-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ===================================
+   COURSE CARDS GRID
+   =================================== */
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    padding: 14px 0;
+}
+
+.course-card {
+    background: linear-gradient(135deg, #CE3602 0%, #B32F02 100%);
+    color: #fff;
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    border: 2px solid transparent;
+    box-shadow: 0 3px 10px rgba(206, 54, 2, 0.2);
+}
+
+.course-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(206, 54, 2, 0.3);
+}
+
+/* Selected card - GREEN with checkmark */
+.course-card.selected {
+    background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+    border-color: #86EFAC;
+    color: white;
+    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.3);
+}
+
+/* Checkmark badge */
+.course-card.selected::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 24px;
+    height: 24px;
+    background-color: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2322C55E'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-size: 16px;
+    background-repeat: no-repeat;
+    background-position: center;
+    animation: checkPop 0.25s ease-out;
+}
+
+@keyframes checkPop {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.course-card-title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+.course-card-code {
+    margin-bottom: 4px;
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.course-card-details {
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+/* ===================================
+   UNIVERSITY CARD
+   =================================== */
+
+.uni-card {
+    width: 280px;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+    color: white;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+    transition: all 0.3s ease;
+}
+
+.uni-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+}
+
+/* ===================================
+   SEARCH BOX
+   =================================== */
+
+.course-search-container {
+    display: block;
+    margin-bottom: 20px;
+}
+
+.course-search-box {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px 14px;
+    padding-left: 44px;
+    border: 2px solid #E5E7EB;
+    border-radius: 10px;
+    background-color: #fff;
+    font-size: 15px;
+    font-family: 'Manrope', sans-serif;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.course-search-box:focus {
+    border-color: #CE3602;
+    box-shadow: 0 0 0 3px rgba(206, 54, 2, 0.1);
+}
+
+.course-search-box::placeholder {
+    color: #9CA3AF;
+}
+
+/* ===================================
+   COURSE DETAILS / EDIT PAGE
+   =================================== */
+
+.container {
+    display: grid;
+    grid-template-columns: 40% 60%;
+    gap: 20px;
+    align-items: start;
+}
+
+.left-panel,
+#left-panel {
+    background: #F9FAFB;
+    border-radius: 14px;
+    padding: 14px;
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+#right-panel {
+    background: #F3F4F6;
+    border-radius: 14px;
+    padding: 16px;
+    min-height: 400px;
+}
+
+/* Session type headers */
+.session-type-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+
+/* Session cards in left panel */
+#left-panel .course-card {
+    background: white;
+    border: 2px solid #E5E7EB;
+    color: #374151;
+    margin-bottom: 8px;
+    padding: 12px;
+    text-align: left;
+    font-size: 12px;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+#left-panel .course-card:hover {
+    border-color: #CE3602;
+    box-shadow: 0 3px 10px rgba(206, 54, 2, 0.12);
+    transform: translateY(-1px);
+}
+
+/* Excluded session styling */
+#left-panel .course-card.selected {
+    background: #FEF2F2;
+    border-color: #FCA5A5;
+    color: #991B1B;
+    opacity: 0.75;
+}
+
+#left-panel .course-card.selected::before {
+    display: none;
+}
+
+#left-panel .course-card.selected::after {
+    content: 'EXCLUDED';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 8px;
+    font-weight: 700;
+    color: #DC2626;
+    background: #FEE2E2;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* ===================================
+   FILTER SECTION - COMPACT
+   =================================== */
+
+.filter-group {
+    background: white;
+    padding: 14px 18px;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    border: 1px solid #F3F4F6;
+    margin-bottom: 12px;
+}
+
+.filter-group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.filter-group-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1F2937;
+}
+
+.filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Hide native radio buttons */
+.filter-chips input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Filter chip labels - compact */
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background-color: #F3F4F6;
+    color: #4B5563;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.filter-chip:hover {
+    background-color: #E5E7EB;
+}
+
+/* Active/checked state */
+input[type="radio"]:checked+.filter-chip {
+    background-color: #CE3602;
+    color: white;
+    box-shadow: 0 2px 8px rgba(206, 54, 2, 0.25);
 }
 
 /* ===================================
@@ -562,23 +590,23 @@ input[type="radio"]:focus+.filter-chip {
 
 .errorMessage {
     background: white;
-    padding: 32px;
-    border-radius: 20px;
+    padding: 28px;
+    border-radius: 16px;
     text-align: center;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    max-width: 400px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+    max-width: 380px;
 }
 
 .errorMessage h2 {
-    margin: 0 0 12px;
+    margin: 0 0 10px;
     color: #DC2626;
-    font-size: 22px;
+    font-size: 20px;
 }
 
 .errorMessage p {
-    margin: 0 0 24px;
+    margin: 0 0 20px;
     color: #4B5563;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 #processOverlay {
@@ -608,7 +636,7 @@ input[type="radio"]:focus+.filter-chip {
 }
 
 .processMessage h2 {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
     animation: pulse 2s ease-in-out infinite;
 }
@@ -630,10 +658,10 @@ input[type="radio"]:focus+.filter-chip {
    =================================== */
 
 #fileInput {
-    margin: 16px 0;
-    padding: 12px;
+    margin: 14px 0;
+    padding: 10px;
     border: 2px dashed #D1D5DB;
-    border-radius: 12px;
+    border-radius: 10px;
     background: #F9FAFB;
     cursor: pointer;
 }
@@ -644,19 +672,80 @@ input[type="radio"]:focus+.filter-chip {
 }
 
 /* ===================================
+   INSTRUCTION BANNER
+   =================================== */
+
+.instruction-banner {
+    background: linear-gradient(135deg, #DBEAFE 0%, #E0E7FF 100%);
+    border: 1px solid #BFDBFE;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+}
+
+.instruction-banner h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1E40AF;
+}
+
+.instruction-banner p {
+    margin: 0;
+    font-size: 13px;
+    color: #3B82F6;
+    line-height: 1.5;
+}
+
+/* ===================================
+   CENTER CONTAINER
+   =================================== */
+
+.center-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.upload-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+/* ===================================
+   NAVIGATION ROW
+   =================================== */
+
+.nav-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+/* ===================================
    RESPONSIVE ADJUSTMENTS
    =================================== */
 
 @media (max-width: 768px) {
+    #all-container {
+        padding: 12px;
+    }
+
     .grid-container {
         grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
     }
 
     .container {
         grid-template-columns: 1fr;
     }
 
-    .left-panel {
+    .left-panel,
+    #left-panel {
         max-height: 40vh;
     }
 
@@ -665,18 +754,27 @@ input[type="radio"]:focus+.filter-chip {
     }
 
     .step-circle {
-        width: 32px;
-        height: 32px;
-        font-size: 12px;
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
     }
 
     .filter-group {
-        padding: 16px;
+        padding: 12px;
     }
 
-    .generate-btn {
+    .generate-btn,
+    #processButton {
         width: 100%;
         justify-content: center;
+    }
+
+    .course-card {
+        padding: 10px;
+    }
+
+    .course-card-title {
+        font-size: 12px;
     }
 }
 

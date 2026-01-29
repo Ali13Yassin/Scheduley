@@ -610,9 +610,16 @@ document.getElementById("filter-back").addEventListener("click", function () {
 });
 
 // After generation, allow going back to filters
+// After generation, allow going back to filters
 const scheduleBackToFiltersBtn = document.getElementById('schedule-stage-back');
 if (scheduleBackToFiltersBtn) {
     scheduleBackToFiltersBtn.addEventListener('click', function () {
+        showStage('filter-selection-menu');
+    });
+}
+const scheduleBackToFiltersBtnBottom = document.getElementById('schedule-stage-back-bottom');
+if (scheduleBackToFiltersBtnBottom) {
+    scheduleBackToFiltersBtnBottom.addEventListener('click', function () {
         showStage('filter-selection-menu');
     });
 }
@@ -622,18 +629,14 @@ if (scheduleBackToFiltersBtn) {
 // showStage('schedule-details-container');
 // document.getElementById("center-container").style.display = "none"; // not needed if using showStage
 
-// Immutable base palette, per-run assigned colors stored separately
+// Immutable base palette - User's specified color palette
+// Steel Red, Fantasy Orange, Leila, Aesthetic Teal, Light Ocean Green
 window.BASE_COURSE_COLORS = [
-    ["#F17141", "#FFECAE"],
-    ["#FFECAE", "#F17141"],
-    ["#702FE5", "#F9CDD1"],
-    ["#25092E", "#F2C0DD"],
-    ["#F2C0DD", "#25092E"],
-    ["#1F3FC3", "#EFEFD7"],
-    ["#EFEFD7", "#1F3FC3"],
-    ["#475E3D", "#B9D5E6"],
-    ["#1C304F", "#B9D5E6"],
-    ["#B9D5E6", "#1C304F"],
+    ["#D74C4C", "#FFFFFF"],  // Steel Red
+    ["#F49729", "#FFFFFF"],  // Fantasy Orange
+    ["#27284E", "#FFFFFF"],  // Leila (dark blue)
+    ["#1A9399", "#FFFFFF"],  // Aesthetic Teal
+    ["#7CCBA9", "#27284E"],  // Light Ocean Green (dark text)
 ];
 window.assignedColors = window.assignedColors || {};
 

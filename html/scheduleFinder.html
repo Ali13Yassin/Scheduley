@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scheduley</title>
 
+    <!-- Inter Font for professional typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- TailwindCSS Play CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -139,54 +144,52 @@
             <!-- Course details menu -->
             <div id="course-details-container" style="display: none;">
                 <!-- Info banner explaining what this screen does -->
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
-                    <div class="flex items-start gap-3">
-                        <svg class="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <div class="bg-blue-50 border border-blue-200 p-3 mb-4 rounded-lg">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd"
                                 d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                                 clip-rule="evenodd" />
                         </svg>
                         <div>
-                            <h3 class="font-semibold text-blue-800">Remove Unavailable Sessions</h3>
-                            <p class="text-sm text-blue-700 mt-1">
-                                Click on any session to <strong>exclude it</strong> from schedule generation.
-                                Use this when a lecture is full or conflicts with your commitments.
-                                <br><span class="text-blue-500">💡 Hover over a session to preview its time slot on the
-                                    calendar.</span>
+                            <h3 class="font-semibold text-blue-800 text-sm">Remove Unavailable Sessions</h3>
+                            <p class="text-xs text-blue-600 mt-1">
+                                Click on any session to <strong>exclude it</strong> from schedule generation. Hover to
+                                preview on the calendar.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Edit course sessions</h2>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">Edit course sessions</h2>
                 <div class="container">
                     <div id="left-panel" class="left-panel">
                         <!-- Sessions will be rendered here by JS -->
                     </div>
 
                     <div id="right-panel">
-                        <div class="empty-preview text-center text-gray-400 py-20">
-                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor"
+                        <div class="empty-preview text-center text-gray-400 py-16">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                     d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <p class="text-lg">Hover over a session to preview</p>
+                            <p class="text-sm">Hover over a session to preview</p>
                         </div>
                     </div>
-                    <div class="nav-row">
-                        <button id="course-details-back" class="btn-secondary">Back</button>
-                        <button id="save-mycourse-details">Save</button>
-                    </div>
+                </div>
+                <div class="nav-row mt-4">
+                    <button id="course-details-back" class="btn-secondary">Back</button>
+                    <button id="save-mycourse-details">Save</button>
                 </div>
             </div>
 
             <!-- Filters menu -->
             <div id="filter-selection-menu" style="display: none;">
-                <h2 class="text-2xl font-bold text-gray-900 mb-2">Customize Your Schedule</h2>
-                <p class="text-gray-500 mb-8">Choose your preferences and we'll find the best schedules for you.</p>
+                <h2 class="text-xl font-bold text-gray-900 mb-1">Customize Your Schedule</h2>
+                <p class="text-gray-500 text-sm mb-4">Set your preferences below.</p>
 
-                <div id="filter-container" class="space-y-6">
+                <div id="filter-container" class="space-y-3">
                     <div id="filter-1" class="filter-group">
                         <div class="filter-group-header">
                             <svg class="w-5 h-5 text-brand-500" fill="currentColor" viewBox="0 0 20 20">
@@ -268,18 +271,28 @@
                     </div>
                 </div>
 
-                <!-- Generate button (prominent CTA) -->
-                <div class="mt-10 text-center">
-                    <button id="processButton" class="generate-btn">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
+                <!-- Generate button (Pill Style) -->
+                <div class="mt-6 text-center">
+                    <button id="processButton" class="generate-pill-btn" style="--clr: #D74C4C">
+                        <span class="button__icon-wrapper">
+                            <svg viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg"
+                                class="button__icon-svg" width="10">
+                                <path
+                                    d="M13.376 11.552l-.264-10.44-10.44-.24.024 2.28 6.96-.048L.2 12.56l1.488 1.488 9.432-9.432-.048 6.912 2.304.024z"
+                                    fill="currentColor"></path>
+                            </svg>
+                            <svg viewBox="0 0 14 15" fill="none" width="10" xmlns="http://www.w3.org/2000/svg"
+                                class="button__icon-svg button__icon-svg--copy">
+                                <path
+                                    d="M13.376 11.552l-.264-10.44-10.44-.24.024 2.28 6.96-.048L.2 12.56l1.488 1.488 9.432-9.432-.048 6.912 2.304.024z"
+                                    fill="currentColor"></path>
+                            </svg>
+                        </span>
                         Generate Schedule
                     </button>
                 </div>
 
-                <div class="nav-row mt-6">
+                <div class="nav-row mt-4">
                     <button id="filter-back" class="btn-secondary">Back</button>
                 </div>
             </div>
@@ -310,29 +323,60 @@
                         class="text-sm text-gray-500 hover:text-brand-500">Clear</button>
                 </div>
             </div>
-            <div class="nav-row schedule-nav">
-                <button id="back" class="btn-nav">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+            <div id="schedule-container"></div>
+
+            <!-- Schedule Action Buttons -->
+            <div class="schedule-actions">
+                <button id="schedule-stage-back-bottom" class="back-filters-btn">
+                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
-                    Previous
+                    Back to Filters
                 </button>
-                <button id="next" class="btn-nav">
-                    Next
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
+
+                <!-- Center Nav Buttons (Strict Style) -->
+                <div class="styled-wrapper">
+                    <!-- Previous -->
+                    <button id="back" class="button">
+                        <div class="button-box">
+                            <span class="button-elem">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 40">
+                                    <path
+                                        d="M46 20.038c0-.7-.3-1.5-.8-2.1l-16-17c-1.1-1-3.2-1.4-4.4-.3-1.2 1.1-1.2 3.3 0 4.4l11.3 11.9H3c-1.7 0-3 1.3-3 3s1.3 3 3 3h33.1l-11.3 11.9c-1 1-1.2 3.3 0 4.4 1.2 1.1 3.3.8 4.4-.3l16-17c.5-.5.8-1.1.8-1.9z">
+                                    </path>
+                                </svg>
+                            </span>
+                        </div>
+                    </button>
+                    <!-- Next -->
+                    <button id="next" class="button next">
+                        <div class="button-box">
+                            <span class="button-elem">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 40">
+                                    <path
+                                        d="M46 20.038c0-.7-.3-1.5-.8-2.1l-16-17c-1.1-1-3.2-1.4-4.4-.3-1.2 1.1-1.2 3.3 0 4.4l11.3 11.9H3c-1.7 0-3 1.3-3 3s1.3 3 3 3h33.1l-11.3 11.9c-1 1-1.2 3.3 0 4.4 1.2 1.1 3.3.8 4.4-.3l16-17c.5-.5.8-1.1.8-1.9z">
+                                    </path>
+                                </svg>
+                            </span>
+                        </div>
+                    </button>
+                </div>
+
+                <button id="save-schedule-button" class="save-btn">
+                    <div class="button-wrapper">
+                        <div class="text">Save</div>
+                        <span class="icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor"
+                                stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17">
+                                </path>
+                            </svg>
+                        </span>
+                    </div>
                 </button>
-                <button id="schedule-stage-back" class="btn-secondary ml-auto">Back to filters</button>
             </div>
-            <div id="schedule-container"></div>
-            <button id="save-schedule-button" class="save-schedule-btn">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                </svg>
-                Save schedule
-            </button>
         </div>
 
         <div id="errorOverlay">

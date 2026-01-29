@@ -1,36 +1,47 @@
 <style>
-    .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #fff;
-            padding: 10px 20px;
-            border-bottom: 2px solid #CE3602; /* Added bottom separator line */
-            margin: 0;
-            width: 100%;
-            box-sizing: border-box; /* Ensure padding is included in the width */
-    }
+        .navbar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: linear-gradient(135deg, #fff 0%, #F9FAFB 100%);
+                padding: 12px 24px;
+                border-bottom: 1px solid #E5E7EB;
+                margin: 0;
+                width: 100%;
+                box-sizing: border-box;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
 
-    .navbar a {
-            color: #CE3602;
-            text-decoration: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            font-size: 25px;
-            transition: background-color 0.3s;
-    }
+        .navbar a {
+                color: #CE3602;
+                text-decoration: none;
+                padding: 8px 14px;
+                border-radius: 8px;
+                font-weight: 700;
+                font-size: 20px;
+                transition: all 0.2s ease;
+        }
 
-    .navbar a:hover {
-            background-color: #ebebeb;
-    }
-    #your-schedule-button {
-            background-color: #CE3602;
-            color: #fff;
-    }
+        .navbar a:hover {
+                background-color: #FFF5F2;
+        }
 
+        #your-schedule-button {
+                background: linear-gradient(135deg, #CE3602 0%, #E84003 100%);
+                color: #fff;
+                font-size: 14px;
+                padding: 10px 18px;
+                border-radius: 10px;
+                box-shadow: 0 4px 12px rgba(206, 54, 2, 0.25);
+        }
+
+        #your-schedule-button:hover {
+                background: linear-gradient(135deg, #B32F02 0%, #CE3602 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(206, 54, 2, 0.3);
+        }
 </style>
-<div class="navbar">
-    <a href="../index.html">Scheduley</a>
-    <a href="mySchedule.html" id="your-schedule-button">Your schedule</a>
-</div>
+<nav class="navbar">
+        <a href="../index.html">Scheduley</a>
+        <a href="mySchedule.html" id="your-schedule-button">Your schedule</a>
+</nav>
