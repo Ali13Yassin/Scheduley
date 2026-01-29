@@ -120,6 +120,171 @@ let viewIndex = 0;
 let filteredIndexes = null; // array of indexes into allSchedules matching active filter
 let activeDayOff = null; // e.g., 'MON' or null
 
+// ===================================
+// LOCK SLOT FEATURE
+// ===================================
+window.lockedGroups = new Set(); // Stores "COURSE-TYPE-ClassName" keys
+
+// Helper: Derive session type from class name
+function getSessionType(className) {
+    if (!className) return 'lectures';
+    const lower = className.toLowerCase();
+    if (lower.includes('lec')) return 'lectures';
+    if (lower.includes('lab')) return 'labs';
+    if (lower.includes('tut')) return 'tutorials';
+    return 'lectures'; // Default
+}
+
+// Helper: Generate lock key from session (using ||| delimiter to avoid conflicts with hyphens in data)
+function getLockKey(course, sessionType, className) {
+    return `${course}|||${sessionType}|||${className}`;
+}
+
+// Toggle lock state for a session group
+function toggleLock(course, className) {
+    const sessionType = getSessionType(className);
+    const key = getLockKey(course, sessionType, className);
+    if (window.lockedGroups.has(key)) {
+        window.lockedGroups.delete(key);
+    } else {
+        window.lockedGroups.add(key);
+    }
+    recomputeFilteredIndexes();
+    updateResultsSummary();
+    // Re-render to update lock icons
+    const schedules = window.allSchedules || [];
+    if (schedules.length > 0 && schedules[viewIndex]) {
+        renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    }
+}
+
+// Check if a session is locked
+function isLocked(course, className) {
+    const sessionType = getSessionType(className);
+    const key = getLockKey(course, sessionType, className);
+    return window.lockedGroups.has(key);
+}
+
+// Clear all locks
+function clearAllLocks() {
+    window.lockedGroups.clear();
+    recomputeFilteredIndexes();
+    updateResultsSummary();
+    const schedules = window.allSchedules || [];
+    if (schedules.length > 0 && schedules[viewIndex]) {
+        renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    }
+}
+
+// Check if schedule contains ALL locked sessions
+function scheduleMatchesLocks(schedule, lockedGroups) {
+    if (lockedGroups.size === 0) return true;
+
+    // For each locked key, check if schedule has a matching session
+    for (const lockKey of lockedGroups) {
+        const parts = lockKey.split('|||');
+        if (parts.length !== 3) continue; // Invalid key, skip
+        const [course, sessionType, className] = parts;
+        const found = schedule.some(s =>
+            s.course === course && s.class === className
+        );
+        if (!found) return false;
+    }
+    return true;
+}
+
+// Recompute filtered indexes: DayOff ∩ Locks
+function recomputeFilteredIndexes() {
+    const schedules = window.allSchedules || [];
+    if (schedules.length === 0) {
+        filteredIndexes = null;
+        return;
+    }
+
+    // Ensure viewIndex is a number
+    if (typeof window.viewIndex !== 'number') {
+        window.viewIndex = parseInt(window.viewIndex, 10) || 0;
+    }
+
+    console.log('[recompute] Starting. Current viewIndex:', window.viewIndex, 'Locked:', Array.from(window.lockedGroups));
+
+    // Start with all indexes
+    let indexes = schedules.map((_, i) => i);
+
+    // Apply DayOff filter
+    if (activeDayOff) {
+        const groups = groupSchedulesByDayOff(schedules);
+        const dayMatches = groups[activeDayOff] || [];
+        indexes = indexes.filter(i => dayMatches.includes(i));
+
+        // Debug current index against DayOff
+        if (!dayMatches.includes(window.viewIndex)) {
+            console.warn('[recompute] Current schedule violates DayOff filter:', activeDayOff);
+        }
+    }
+
+    // Apply Lock filter
+    if (window.lockedGroups.size > 0) {
+        indexes = indexes.filter(i => {
+            const matches = scheduleMatchesLocks(schedules[i], window.lockedGroups);
+            if (i === window.viewIndex && !matches) {
+                console.warn('[recompute] Current schedule fails lock check!');
+                // Log which lock failed
+                for (const lockKey of window.lockedGroups) {
+                    const parts = lockKey.split('|||');
+                    if (parts.length === 3) {
+                        const [c, st, cls] = parts;
+                        const types = window.scheduleApp.getSessionType(cls);
+                        const found = schedules[i].some(s => s.course === c && s.class === cls);
+                        if (!found) console.warn(' - Missing locked session:', cls);
+                    }
+                }
+            }
+            return matches;
+        });
+    }
+
+    // Set result
+    filteredIndexes = indexes.length > 0 ? indexes : null;
+    console.log('[recompute] Filtered count:', filteredIndexes ? filteredIndexes.length : 0);
+
+    // STICKY VIEW IMPLEMENTATION:
+    // Only force sticky view if the schedule is CUSTOM (added via swap)
+    // OR if the user explicitly locked something on it (implied by viewIndex being high).
+    // Original schedules (index < generated count) should respect filters.
+    const isCustomSchedule = window.viewIndex >= (window.generatedScheduleCount || window.allSchedules.length);
+
+    // Also sticky if we locked something on it? 
+    // Actually, locking a session on an original schedule DOES NOT create a new schedule index.
+    // So if I lock on Schedule 0, viewIndex remains 0.
+    // If I then apply "Day Off", Schedule 0 should disappear.
+    // So ONLY custom schedules should be sticky.
+
+    if (isCustomSchedule && window.viewIndex >= 0 && schedules[window.viewIndex]) {
+        if (!filteredIndexes) filteredIndexes = [];
+        if (!filteredIndexes.includes(window.viewIndex)) {
+            console.log('[recompute] Forcing custom/swapped viewIndex', window.viewIndex, 'into filtered list (Sticky View)');
+            filteredIndexes.push(window.viewIndex);
+        }
+    }
+
+    // Adjust viewIndex if current not in filtered (Should not happen with Sticky View)
+    if (filteredIndexes && !filteredIndexes.includes(window.viewIndex)) {
+        console.warn('[recompute] Current viewIndex', window.viewIndex, 'not in filtered list. Jumping to', filteredIndexes[0]);
+        window.viewIndex = filteredIndexes[0];
+    }
+}
+
+// Expose helpers globally for UI access
+window.scheduleApp = {
+    toggleLock,
+    isLocked,
+    clearAllLocks,
+    getSessionType,
+    getLockKey
+};
+
+
 function computeDayUsage(schedule) {
     // Returns a Set of days present in schedule
     const days = new Set();
@@ -177,19 +342,12 @@ function updateResultsSummary() {
 
 function applyDayOffFilter(day) {
     activeDayOff = day;
-    const groups = groupSchedulesByDayOff(window.allSchedules || []);
-    filteredIndexes = day ? groups[day] : null;
-    // reset viewIndex to first matching schedule
-    if (filteredIndexes && filteredIndexes.length > 0) {
-        viewIndex = filteredIndexes[0];
-    } else {
-        viewIndex = 0;
-    }
+    // Use centralized filter computation (includes lock intersection)
+    recomputeFilteredIndexes();
     // Render based on current filter
     const schedules = window.allSchedules || [];
     if (schedules.length === 0) return;
-    const idx = (filteredIndexes && filteredIndexes.length > 0) ? filteredIndexes[0] : 0;
-    renderSchedule(schedules[idx], "schedule-details-container", window.assignedColors || {});
+    renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
     updateResultsSummary();
 }
 
@@ -682,6 +840,7 @@ document.getElementById("processButton").addEventListener("click", function () {
                 return;
             }
             window.allSchedules = data.schedules;
+            window.generatedScheduleCount = window.allSchedules.length;
             console.log("Total schedules found: " + allSchedules.length);
             // document.getElementById("center-container").style.display = "none";
             // document.getElementById("schedule-details-container").style.display = "block";
@@ -716,6 +875,14 @@ function wireDayOffButtons() {
     });
     const clearBtn = document.getElementById('clear-dayoff-filter');
     if (clearBtn) clearBtn.addEventListener('click', () => applyDayOffFilter(null));
+
+    // Wire Clear Locks button
+    const clearLocksBtn = document.getElementById('clear-locks-btn');
+    if (clearLocksBtn) clearLocksBtn.addEventListener('click', () => {
+        if (window.scheduleApp?.clearAllLocks) {
+            window.scheduleApp.clearAllLocks();
+        }
+    });
 }
 
 // Ensure buttons are wired once DOM is ready (module executes after HTML load)

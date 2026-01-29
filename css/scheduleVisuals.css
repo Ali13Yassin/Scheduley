@@ -731,3 +731,134 @@
     padding: 0 24px;
     /* Ensure padding */
 }
+
+/* ===================================
+   LOCK SLOT FEATURE STYLES
+   =================================== */
+
+/* Lock button base styling */
+.lock-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.15s;
+    z-index: 10;
+}
+
+.lock-btn:hover {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 1);
+}
+
+/* Locked class block styling */
+.class-block.locked {
+    box-shadow: 0 0 0 2px #FFD700, 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+    animation: lockedPulse 2s ease-in-out infinite;
+}
+
+@keyframes lockedPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 2px #FFD700, 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    50% {
+        box-shadow: 0 0 0 3px #FFC000, 0 2px 6px rgba(255, 193, 0, 0.3);
+    }
+}
+
+/* Clear locks button styling */
+#clear-locks-btn {
+    background: none;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#clear-locks-btn:hover {
+    border-color: #FFD700;
+    background: rgba(255, 215, 0, 0.1);
+    color: #B8860B;
+}
+
+/* ===================================
+   DRAG-DROP FEATURE STYLES
+   =================================== */
+
+/* Dragging state */
+.class-block.dragging {
+    opacity: 0.6 !important;
+    cursor: grabbing !important;
+    z-index: 100 !important;
+    transform: scale(0.98);
+}
+
+.class-block[draggable="true"] {
+    cursor: grab;
+}
+
+.class-block[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+/* Ghost drop zones - valid (green with stripes for accessibility) */
+.drop-zone-ghost.valid {
+    border: 2px dashed #22C55E;
+    background: repeating-linear-gradient(45deg,
+            rgba(34, 197, 94, 0.1),
+            rgba(34, 197, 94, 0.1) 4px,
+            rgba(34, 197, 94, 0.05) 4px,
+            rgba(34, 197, 94, 0.05) 8px);
+    color: #16A34A;
+    cursor: pointer;
+}
+
+.drop-zone-ghost.valid:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    border-color: #16A34A;
+}
+
+/* Ghost drop zones - invalid (red with stripes) */
+.drop-zone-ghost.invalid {
+    border: 2px dashed #EF4444;
+    background: repeating-linear-gradient(45deg,
+            rgba(239, 68, 68, 0.1),
+            rgba(239, 68, 68, 0.1) 4px,
+            rgba(239, 68, 68, 0.05) 4px,
+            rgba(239, 68, 68, 0.05) 8px);
+    color: #DC2626;
+    cursor: not-allowed;
+}
+
+/* Ghost common styles */
+.drop-zone-ghost {
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    z-index: 50;
+    transition: transform 0.15s, box-shadow 0.15s;
+    pointer-events: auto;
+}
