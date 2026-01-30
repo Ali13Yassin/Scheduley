@@ -46,9 +46,9 @@ function generateSchedules(courses, courseDetails, currentSchedule = [], results
                 if (performance.now() - startTime > timeLimit) return results;
 
                 const newSchedule = [...currentSchedule];
-                if (lectureTime) newSchedule.push(lectureTime);
-                if (labTime) newSchedule.push(labTime);
-                if (tutorialTime) newSchedule.push(tutorialTime);
+                if (lectureTime) newSchedule.push(...lectureTime); // Spread the group
+                if (labTime) newSchedule.push(...labTime);         // Spread the group
+                if (tutorialTime) newSchedule.push(...tutorialTime); // Spread the group
 
                 if (isValidSchedule(newSchedule)) {
                     if (performance.now() - startTime > timeLimit) return results;
@@ -118,7 +118,7 @@ function shuffleArray(array) {
     }
     return shuffledArray;
 }
-self.onmessage = function(e) {
+self.onmessage = function (e) {
     const { selectedResults, filterData, coursesData } = e.data;
     try {
         const schedules = findSchedule(selectedResults, filterData, coursesData);
@@ -131,19 +131,19 @@ self.onmessage = function(e) {
         self.postMessage({ type: 'error', message: error.message });
     }
 };
-function trackRequest(data){
+function trackRequest(data) {
     const trackingUrl = 'https://script.google.com/macros/s/AKfycbzU19SF_yf_b0iZLqzBUapkq4K7bmee9AN7yeW-h34O3Cw7epwbzM50li_kOTgCyJNH/exec';
-      // Send the tracking data via a POST request
-      fetch(trackingUrl, {
+    // Send the tracking data via a POST request
+    fetch(trackingUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(data)
-      })
-      .then(response => response.json())
-      .then(result => {
-        console.log('Tracking result:', result);
-      })
-      .catch(error => console.error('Error tracking function call:', error));
-    }
+    })
+        .then(response => response.json())
+        .then(result => {
+            console.log('Tracking result:', result);
+        })
+        .catch(error => console.error('Error tracking function call:', error));
+}

@@ -1,5 +1,5 @@
 // import { findSchedule } from './scheduleFinder.js';  // Adjust the path as needed
-import { initFileHandler , parseCSV } from './filesHandler.js';
+import { initFileHandler, parseCSV } from './filesHandler.js';
 import { renderSchedule } from './uiFunctions.js';
 import { showAlert } from './alert.js';
 let worker = new Worker("../js/scheduleFinder.js");
@@ -21,19 +21,19 @@ window.selectedResults = null; //Temporary to check if courses are selected
 fetch('nav.html')
     .then(response => response.text())
     .then(data => {
-    document.getElementById('navbar').innerHTML = data;
-});
+        document.getElementById('navbar').innerHTML = data;
+    });
 fetch('scheduleVisuals.html')
     .then(response => response.text())
     .then(data => {
         document.getElementById('schedule-container').innerHTML = data;
         document.getElementById('right-panel').innerHTML = data;
-});
+    });
 fetch('footer.html')
     .then(response => response.text())
     .then(data => {
         document.getElementById('footer').innerHTML = data;
-});
+    });
 
 
 function getSelectedFilters() {
@@ -96,7 +96,7 @@ function updateResultsSummary() {
     if (totalEl) totalEl.textContent = `Found ${total} schedules`;
 
     const currentTotal = filteredIndexes ? filteredIndexes.length : total;
-    const displayIdx = currentTotal > 0 ? ( (filteredIndexes ? filteredIndexes.indexOf(viewIndex) : viewIndex) + 1 ) : 0;
+    const displayIdx = currentTotal > 0 ? ((filteredIndexes ? filteredIndexes.indexOf(viewIndex) : viewIndex) + 1) : 0;
     if (idxEl) idxEl.textContent = currentTotal > 0 ? `Viewing ${displayIdx} / ${currentTotal}` : '–';
 
     if (filterEl) {
@@ -142,16 +142,16 @@ export function loadCourseCardView(courses, divId) {
     let selectedCourses = new Set(divId === 'courseGrid' ? (window.selectedResults || []) : []);
     // Get courses from localStorage
     const detailsString = localStorage.getItem('courseDetails');
-    
+
     // Store original courses data for filtering (only for the main course grid)
     if (divId === 'courseGrid') {
         window.originalCoursesData = courses;
     }
     window.originalCourseMetadata = detailsString ? JSON.parse(detailsString) : {};
-    
+
     function renderCourses(coursesToRender) {
         courseGrid.innerHTML = ''; // Clear existing content before loading
-        
+
         Object.entries(coursesToRender).forEach(([courseId, course]) => {
             const card = document.createElement('div');
             card.className = 'course-card';
@@ -161,20 +161,20 @@ export function loadCourseCardView(courses, divId) {
                 level: "Unknown",
                 creditHours: "Unknown"
             };
-            
+
             // Card content
             card.innerHTML = ` 
             <div class="course-card-title">${courseInfo["courseName"]}</div>
             <div class="course-card-code">${courseId}</div>
             <div class="course-card-details">CH:${courseInfo["creditHours"]}</div>
             `;
-            
+
             // Restore selection state if this course was previously selected
             if (selectedCourses.has(courseId)) {
                 card.classList.add('selected');
             }
-            
-            if(divId === "courseGrid"){
+
+            if (divId === "courseGrid") {
                 card.addEventListener('click', () => {
                     // Toggle selection
                     if (selectedCourses.has(courseId)) {
@@ -186,7 +186,7 @@ export function loadCourseCardView(courses, divId) {
                     }
                     window.selectedResults = Array.from(selectedCourses); // persist globally
                 });
-            }else{
+            } else {
                 card.addEventListener('click', () => {
                     showSelectedCoursesDetails(courseId);
                     document.getElementById("mycourse-selection-container").style.display = "none";
@@ -197,12 +197,12 @@ export function loadCourseCardView(courses, divId) {
             courseGrid.appendChild(card);
         });
     }
-    
+
     // Initial render
     renderCourses(courses);
-    
+
     // Add search functionality only for courseGrid
-    if(divId === "courseGrid") {
+    if (divId === "courseGrid") {
         const searchInput = document.getElementById('course-search-input');
         if (searchInput) {
             // Avoid stacking listeners on re-render
@@ -235,17 +235,21 @@ export function loadCourseCardView(courses, divId) {
 async function fetchCSV(url) {
     const response = await fetch(url);
     const text = await response.text();
+    // Clear old cached data to ensure fresh parse
+    localStorage.removeItem('coursesData');
+    localStorage.removeItem('courseDetails');
+    localStorage.removeItem('coursesDataDate');
     parseCSV(text);
     document.getElementById("online-import-container").style.display = "none";
     document.getElementById("course-selection-container").style.display = "block";
 }
 
-function showLoadingOverlay(text){
+function showLoadingOverlay(text) {
     processOverlay.style.opacity = "1";
     processOverlay.style.visibility = "visible";
     document.getElementById('process-title').textContent = text;
 }
-function hideLoadingOverlay(){
+function hideLoadingOverlay() {
     processOverlay.style.opacity = "0";
     processOverlay.style.visibility = "hidden";
 }
@@ -273,50 +277,75 @@ function showSelectedCoursesDetails(courseId) {
         };
     }
 
-    function createSessionCard(session, type, index) {
+    function createSessionCard(sessionGroup, type, index) {
         const card = document.createElement('div');
         card.className = 'course-card';
         const sessionType = type.toLowerCase();
 
+        // Use the first session to get the class name (e.g. "Lecture 13")
+        // and lecturer (assuming they are consistent for the group)
+        const firstSession = sessionGroup[0];
+        const className = firstSession.class;
+        const lecturer = firstSession.lecturer;
+
+        // generated HTML for all sessions in this group
+        let detailsHTML = "";
+        sessionGroup.forEach(session => {
+            detailsHTML += `
+                <div class="session-detail-row" style="margin-bottom: 4px;">
+                    <strong>${session.day}</strong>: ${session.start} - ${session.end}<br>
+                    <span style="font-size: 0.9em; color: #666;">${session.location}</span>
+                </div>
+             `;
+        });
+
         card.innerHTML = `
-            <div class="session-card-title">${session.class}</div>
-            <div class="session-card-details">
-                Day: ${session.day}<br>
-                Time: ${session.start} - ${session.end}<br>
-                Location: ${session.location}<br>
-                Lecturer: ${session.lecturer}
+            <div class="session-card-title">${className}</div>
+             <div class="session-card-details">
+                ${detailsHTML}
+                <div style="margin-top: 4px; border-top: 1px solid #eee; padding-top: 4px;">
+                    ${lecturer}
+                </div>
             </div>
         `;
 
         // Check existing selections
+        // logic: if ANY session in this group is found in selectedSessionsToRemove, 
+        // it counts as selected (implied: the whole group is selected/removed).
+        // Actually, selectedSessionsToRemove stores "class" names usually.
+        // Let's check how it stores them: "sessionsArray.push(session.class);"
+        // So checking if the class name relies in the list is enough.
+
         const isSelected = window.selectedSessionsToRemove[courseId][sessionType]
-            .some(s => JSON.stringify(s) === JSON.stringify(session));
+            .includes(className);
+
         if (isSelected) card.classList.add('selected');
 
         card.addEventListener('click', () => {
             const sessionsArray = window.selectedSessionsToRemove[courseId][sessionType];
-            const sessionIndex = sessionsArray.findIndex(s => 
-                JSON.stringify(s) === JSON.stringify(session));
+            const sessionIndex = sessionsArray.indexOf(className);
 
             if (card.classList.contains('selected')) {
                 // Remove selection
                 card.classList.remove('selected');
-                sessionsArray.splice(sessionIndex, 1);
+                if (sessionIndex > -1) sessionsArray.splice(sessionIndex, 1);
             } else {
                 // Add selection
                 card.classList.add('selected');
-                sessionsArray.push(session.class);
+                if (sessionIndex === -1) sessionsArray.push(className);
             }
-            
+
             // persistSelectedSessions();
             updateTimetablePreview();
         });
+
+        // Preview on hover - render ALL sessions in the group
         card.addEventListener('mouseenter', () => {
-            renderSchedule([session], 'course-details-container', window.assignedColors || {});
+            renderSchedule(sessionGroup, 'course-details-container', window.assignedColors || {});
         });
-    
+
         card.addEventListener('mouseleave', () => {
-            
+
         });
 
         return card;
@@ -343,19 +372,19 @@ function showSelectedCoursesDetails(courseId) {
         courseDetails.labs.forEach((lab, index) => {
             container.appendChild(createSessionCard(lab, 'labs', index));
         });
-}
+    }
 
-// Add tutorials
-if (courseDetails.tutorials && courseDetails.tutorials.length > 0) {
-    const tutorialHeader = document.createElement('div');
-    tutorialHeader.className = 'session-type-header';
-    tutorialHeader.textContent = 'Tutorials';
-    container.appendChild(tutorialHeader);
+    // Add tutorials
+    if (courseDetails.tutorials && courseDetails.tutorials.length > 0) {
+        const tutorialHeader = document.createElement('div');
+        tutorialHeader.className = 'session-type-header';
+        tutorialHeader.textContent = 'Tutorials';
+        container.appendChild(tutorialHeader);
 
-    courseDetails.tutorials.forEach((tutorial, index) => {
-        container.appendChild(createSessionCard(tutorial, 'tutorials', index));
-    });
-}
+        courseDetails.tutorials.forEach((tutorial, index) => {
+            container.appendChild(createSessionCard(tutorial, 'tutorials', index));
+        });
+    }
 }
 
 // Example timetable preview update function
@@ -366,35 +395,35 @@ function updateTimetablePreview() {
 
 // Centralized stage navigation
 const STAGES = [
-  'online-import-container',
-  'upload-container',
-  'course-selection-container',
-  'mycourse-selection-container',
-  'course-details-container',
-  'filter-selection-menu',
-  'schedule-details-container'
+    'online-import-container',
+    'upload-container',
+    'course-selection-container',
+    'mycourse-selection-container',
+    'course-details-container',
+    'filter-selection-menu',
+    'schedule-details-container'
 ];
 
 function showStage(idToShow) {
-  STAGES.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.display = (id === idToShow) ? 'block' : 'none';
-  });
+    STAGES.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = (id === idToShow) ? 'block' : 'none';
+    });
 }
 
 // Schedule navigation buttons
 
 // Online Import schedule buttons
-document.getElementById("SUT-online-import").addEventListener("click", function() {
+document.getElementById("SUT-online-import").addEventListener("click", function () {
     showLoadingOverlay("Downloading information");
     const url = "https://script.google.com/macros/s/AKfycbzU19SF_yf_b0iZLqzBUapkq4K7bmee9AN7yeW-h34O3Cw7epwbzM50li_kOTgCyJNH/exec";
     fetchCSV(url)
-    .then(() => hideLoadingOverlay());
+        .then(() => hideLoadingOverlay());
 });
 
 // Back schedule button
-document.getElementById("back").addEventListener("click", function() {
+document.getElementById("back").addEventListener("click", function () {
     const schedules = window.allSchedules || [];
     if (schedules.length === 0) return;
     if (filteredIndexes && filteredIndexes.length > 0) {
@@ -403,14 +432,14 @@ document.getElementById("back").addEventListener("click", function() {
         viewIndex = filteredIndexes[prevPos];
     } else {
         viewIndex--;
-        if(viewIndex < 0){ viewIndex = schedules.length - 1; }
+        if (viewIndex < 0) { viewIndex = schedules.length - 1; }
     }
     renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
     updateResultsSummary();
 });
 
 // Next schedule button
-document.getElementById("next").addEventListener("click", function() {
+document.getElementById("next").addEventListener("click", function () {
     const schedules = window.allSchedules || [];
     if (schedules.length === 0) return;
     if (filteredIndexes && filteredIndexes.length > 0) {
@@ -419,43 +448,43 @@ document.getElementById("next").addEventListener("click", function() {
         viewIndex = filteredIndexes[nextPos];
     } else {
         viewIndex++;
-        if(viewIndex >= schedules.length){ viewIndex = 0; }
+        if (viewIndex >= schedules.length) { viewIndex = 0; }
     }
     renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
     updateResultsSummary();
 });
 
 // Save schedule button
-document.getElementById("save-schedule-button").addEventListener("click", function() {
+document.getElementById("save-schedule-button").addEventListener("click", function () {
     localStorage.setItem('savedSchedule', JSON.stringify(allSchedules[viewIndex]));
     localStorage.setItem('savedColors', JSON.stringify(window.assignedColors || {}));
     showAlert("Schedule saved", "This DOES NOT register you in this course, you need to manually register in SIS!", "mySchedule.html", "View schedule");
 });
 
 // Import schedule buttons
-document.getElementById("upload-button").addEventListener("click", function() {
+document.getElementById("upload-button").addEventListener("click", function () {
     showStage('upload-container');
 });
 
 // Filter menu buttons
-document.getElementById("show-filter-menu-button").addEventListener("click", function() {
+document.getElementById("show-filter-menu-button").addEventListener("click", function () {
     // TODO: check if a course has no sessions chosen
     document.getElementById("mycourse-selection-container").style.display = "none";
     document.getElementById("filter-selection-menu").style.display = "block";
 });
-document.getElementById("save-mycourse-details").addEventListener("click", function() {
+document.getElementById("save-mycourse-details").addEventListener("click", function () {
     document.getElementById("course-details-container").style.display = "none";
     document.getElementById("mycourse-selection-container").style.display = "block";
 });
-document.getElementById("backto-online-import-button").addEventListener("click", function() {
+document.getElementById("backto-online-import-button").addEventListener("click", function () {
     showStage('online-import-container');
 });
 
-document.getElementById("course-selection-back").addEventListener("click", function() {
+document.getElementById("course-selection-back").addEventListener("click", function () {
     showStage('upload-container');
 });
 
-document.getElementById("show-mycourse-details-button").addEventListener("click", function() {
+document.getElementById("show-mycourse-details-button").addEventListener("click", function () {
     if (!selectedResults) {
         showAlert("No courses selected", "Please select courses first");
         return;
@@ -472,7 +501,7 @@ document.getElementById("show-mycourse-details-button").addEventListener("click"
     document.getElementById("mycourse-selection-container").style.display = "block";
 });
 
-document.getElementById("mycourse-back").addEventListener("click", function() {
+document.getElementById("mycourse-back").addEventListener("click", function () {
     showStage('course-selection-container');
     // Restore the full dataset to the main grid and reset search
     const allCourses = JSON.parse(localStorage.getItem('coursesData')) || window.originalCoursesData || {};
@@ -481,28 +510,28 @@ document.getElementById("mycourse-back").addEventListener("click", function() {
     loadCourseCardView(allCourses, 'courseGrid');
 });
 
-document.getElementById("show-filter-menu-button").addEventListener("click", function() {
+document.getElementById("show-filter-menu-button").addEventListener("click", function () {
     // ...existing checks...
     showStage('filter-selection-menu');
 });
 
-document.getElementById("course-details-back").addEventListener("click", function() {
+document.getElementById("course-details-back").addEventListener("click", function () {
     showStage('mycourse-selection-container');
 });
 
-document.getElementById("save-mycourse-details").addEventListener("click", function() {
+document.getElementById("save-mycourse-details").addEventListener("click", function () {
     // ...existing save...
     showStage('mycourse-selection-container');
 });
 
-document.getElementById("filter-back").addEventListener("click", function() {
+document.getElementById("filter-back").addEventListener("click", function () {
     showStage('mycourse-selection-container');
 });
 
 // After generation, allow going back to filters
 const scheduleBackToFiltersBtn = document.getElementById('schedule-stage-back');
 if (scheduleBackToFiltersBtn) {
-    scheduleBackToFiltersBtn.addEventListener('click', function() {
+    scheduleBackToFiltersBtn.addEventListener('click', function () {
         showStage('filter-selection-menu');
     });
 }
@@ -528,7 +557,7 @@ window.BASE_COURSE_COLORS = [
 window.assignedColors = window.assignedColors || {};
 
 // Make schedule button
-document.getElementById("processButton").addEventListener("click", function() {
+document.getElementById("processButton").addEventListener("click", function () {
     const filterData = getSelectedFilters();
     const startTime = Date.now();
 
@@ -549,10 +578,10 @@ document.getElementById("processButton").addEventListener("click", function() {
     });
     window.assignedColors = assignedColors;
 
-    worker.postMessage({selectedResults, filterData, coursesData: JSON.parse(localStorage.getItem('coursesData'))});
+    worker.postMessage({ selectedResults, filterData, coursesData: JSON.parse(localStorage.getItem('coursesData')) });
     showLoadingOverlay("Finding Your Schedule");
 
-    worker.onmessage = function(e) {
+    worker.onmessage = function (e) {
         let data = e.data;
         if (data.type === "error") {
             console.error("Worker error:", data.message);
@@ -587,7 +616,7 @@ document.getElementById("processButton").addEventListener("click", function() {
         }
     };
 
-    worker.onerror = function(event) {
+    worker.onerror = function (event) {
         console.error("Worker error:", event.message);
         showAlert("An error happened", "Please try again");
         hideLoadingOverlay();
@@ -596,7 +625,7 @@ document.getElementById("processButton").addEventListener("click", function() {
 
 // Wire day-off filter buttons
 function wireDayOffButtons() {
-    const ids = ['SUN','MON','TUE','WED','THU'];
+    const ids = ['SUN', 'MON', 'TUE', 'WED', 'THU'];
     ids.forEach(day => {
         const btn = document.getElementById(`dayoff-${day}`);
         if (btn) btn.addEventListener('click', () => applyDayOffFilter(day));
