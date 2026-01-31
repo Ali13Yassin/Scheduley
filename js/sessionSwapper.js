@@ -240,7 +240,7 @@ export function renderGhosts(alternatives, container, customColors = {}) {
             right: '3px',
             top: `${top}px`,
             minHeight: `${height}px`,
-            zIndex: '50'
+            zIndex: '200' // High z-index to appear above class blocks
         });
 
         // Primary card (first valid option or first option)
@@ -253,6 +253,11 @@ export function renderGhosts(alternatives, container, customColors = {}) {
         primaryCard.dataset.altIndex = primaryEntry.index;
         primaryCard.dataset.className = primaryAlt.className;
         primaryCard.dataset.course = primarySession.course;
+
+        // Fix 5: Mark if this has a popover (prevents direct drop on primary)
+        if (hasMultiple) {
+            primaryCard.dataset.hasPopover = 'true';
+        }
 
         Object.assign(primaryCard.style, {
             position: 'relative',
@@ -310,14 +315,14 @@ export function renderGhosts(alternatives, container, customColors = {}) {
                 right: '0',
                 background: '#fff',
                 borderRadius: '8px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                border: '1px solid #e5e7eb',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                border: '1px solid #d1d5db',
                 padding: '6px',
-                zIndex: '100',
+                zIndex: '300', // Very high to appear above everything
                 opacity: '0',
                 transform: 'translateY(-8px)',
                 pointerEvents: 'none',
-                transition: 'opacity 0.2s ease, transform 0.2s ease',
+                transition: 'opacity 0.15s ease, transform 0.15s ease',
                 maxHeight: '200px',
                 overflowY: 'auto'
             });
@@ -393,8 +398,27 @@ export function renderGhosts(alternatives, container, customColors = {}) {
             let hoverTimeout;
             const expandPopover = () => {
                 hoverTimeout = setTimeout(() => {
+                    // Calculate if popover would go off-screen (show above if near bottom)
+                    const containerRect = container.getBoundingClientRect();
+                    const ghostRect = ghostContainer.getBoundingClientRect();
+                    const estimatedPopoverHeight = Math.min(group.length * 50 + 40, 200);
+
+                    const spaceBelow = containerRect.bottom - ghostRect.bottom;
+                    const spaceAbove = ghostRect.top - containerRect.top;
+
+                    if (spaceBelow < estimatedPopoverHeight && spaceAbove > estimatedPopoverHeight) {
+                        // Position ABOVE the card
+                        popover.style.top = 'auto';
+                        popover.style.bottom = `${height + 4}px`;
+                        popover.style.transform = 'translateY(0)';
+                    } else {
+                        // Position BELOW the card (default)
+                        popover.style.bottom = 'auto';
+                        popover.style.top = `${height + 4}px`;
+                        popover.style.transform = 'translateY(0)';
+                    }
+
                     popover.style.opacity = '1';
-                    popover.style.transform = 'translateY(0)';
                     popover.style.pointerEvents = 'auto';
                     primaryCard.style.boxShadow = '0 4px 16px rgba(34, 197, 94, 0.2)';
                 }, 50); // Faster expansion during drag/interaction

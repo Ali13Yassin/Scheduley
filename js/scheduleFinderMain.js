@@ -144,12 +144,27 @@ function getLockKey(course, sessionType, className) {
 function toggleLock(course, className) {
     const sessionType = getSessionType(className);
     const key = getLockKey(course, sessionType, className);
-    if (window.lockedGroups.has(key)) {
+
+    const wasLocked = window.lockedGroups.has(key);
+    if (wasLocked) {
         window.lockedGroups.delete(key);
     } else {
         window.lockedGroups.add(key);
     }
-    recomputeFilteredIndexes();
+
+    // Fix 4: For custom/swapped schedules, DON'T jump to a different schedule on unlock
+    // Only recompute filters for original (generated) schedules
+    const generatedCount = window.generatedScheduleCount || window.allSchedules.length;
+    const isCustomSchedule = window.viewIndex >= generatedCount;
+
+    if (!isCustomSchedule) {
+        // Original schedule - apply normal filter logic
+        recomputeFilteredIndexes();
+    } else {
+        // Custom schedule - just update visuals, don't jump
+        console.log('[toggleLock] Custom schedule - preserving viewIndex:', window.viewIndex);
+    }
+
     updateResultsSummary();
     // Re-render to update lock icons
     const schedules = window.allSchedules || [];

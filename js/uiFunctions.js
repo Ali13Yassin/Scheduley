@@ -113,10 +113,11 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
     if (!container) return;
     if (!Array.isArray(schedule)) return;
 
-    // Options: enable lock/drag only in schedule-details-container by default
+    // Options: enable lock/drag if explicitly set OR if container has day-columns (is a schedule view)
+    const hasDayColumns = !!container.querySelector('.day-column');
     const isMainScheduleView = containerId === 'schedule-details-container';
-    const enableLock = options.enableLock ?? isMainScheduleView;
-    const enableDrag = options.enableDrag ?? isMainScheduleView;
+    const enableLock = options.enableLock ?? (isMainScheduleView || hasDayColumns);
+    const enableDrag = options.enableDrag ?? (isMainScheduleView || hasDayColumns);
 
     // Clear previous blocks
     container.querySelectorAll('.class-block').forEach(b => b.remove());
@@ -372,6 +373,9 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
                 block.style.opacity = '0.6';
                 block.style.cursor = 'grabbing';
 
+                // HIDE TOOLTIP during drag (Fix 3)
+                if (tooltip) tooltip.style.display = 'none';
+
                 // Render ghost drop zones
                 if (window.sessionSwapper && window.allSchedules) {
                     const currentSchedule = window.allSchedules[window.viewIndex || 0] || [];
@@ -398,6 +402,16 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
                             ghost.addEventListener('drop', (evt) => {
                                 evt.preventDefault();
                                 evt.stopPropagation();
+
+                                // Fix 5: If this ghost has a popover (multiple options), 
+                                // don't swap directly - user must select from expanded popover
+                                if (ghost.dataset.hasPopover === 'true') {
+                                    console.log('[DnD] Drop on multi-option ghost - popover should be showing');
+                                    // The popover is already expanded via dragenter/dragover
+                                    // User needs to drop on a specific option inside the popover
+                                    return; // Don't swap on the primary card
+                                }
+
                                 console.log('[DnD] Drop on ghost:', ghost.dataset.className);
 
                                 // Only handle if we're in an active drag
@@ -434,6 +448,9 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
                 }
                 // Clear drag context
                 window._dragContext = null;
+
+                // RE-ENABLE TOOLTIP after drag (Fix 3)
+                // Tooltip will show again naturally on next mouseenter
             });
         } // End of if (enableDrag)
 
