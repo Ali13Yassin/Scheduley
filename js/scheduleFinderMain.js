@@ -142,23 +142,37 @@ function getLockKey(course, sessionType, className) {
 
 // Toggle lock state for a session group
 function toggleLock(course, className) {
+    console.log('[toggleLock] ===== START =====');
+    console.log('[toggleLock] Course:', course, '| ClassName:', className);
+
     const sessionType = getSessionType(className);
+    console.log('[toggleLock] Derived sessionType:', sessionType);
+
     const key = getLockKey(course, sessionType, className);
+    console.log('[toggleLock] Lock key:', key);
 
     const wasLocked = window.lockedGroups.has(key);
+    console.log('[toggleLock] Was locked?', wasLocked);
+
     if (wasLocked) {
         window.lockedGroups.delete(key);
+        console.log('[toggleLock] UNLOCKED -', key);
     } else {
         window.lockedGroups.add(key);
+        console.log('[toggleLock] LOCKED +', key);
     }
+
+    console.log('[toggleLock] All locked groups:', Array.from(window.lockedGroups));
 
     // Fix 4: For custom/swapped schedules, DON'T jump to a different schedule on unlock
     // Only recompute filters for original (generated) schedules
     const generatedCount = window.generatedScheduleCount || window.allSchedules.length;
     const isCustomSchedule = window.viewIndex >= generatedCount;
+    console.log('[toggleLock] isCustomSchedule?', isCustomSchedule, '| viewIndex:', window.viewIndex, '| generatedCount:', generatedCount);
 
     if (!isCustomSchedule) {
         // Original schedule - apply normal filter logic
+        console.log('[toggleLock] Original schedule - recomputing filters');
         recomputeFilteredIndexes();
     } else {
         // Custom schedule - just update visuals, don't jump
@@ -169,15 +183,19 @@ function toggleLock(course, className) {
     // Re-render to update lock icons
     const schedules = window.allSchedules || [];
     if (schedules.length > 0 && schedules[viewIndex]) {
+        console.log('[toggleLock] Re-rendering schedule at viewIndex:', viewIndex);
         renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
     }
+    console.log('[toggleLock] ===== END =====');
 }
 
 // Check if a session is locked
 function isLocked(course, className) {
     const sessionType = getSessionType(className);
     const key = getLockKey(course, sessionType, className);
-    return window.lockedGroups.has(key);
+    const locked = window.lockedGroups.has(key);
+    console.log('[isLocked] Course:', course, '| ClassName:', className, '| Locked?', locked);
+    return locked;
 }
 
 // Clear all locks

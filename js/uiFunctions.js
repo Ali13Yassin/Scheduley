@@ -1,6 +1,10 @@
 // Professional Schedule Calendar Rendering
 // Following industry best practices for calendar UI/UX
 
+// ===== DEBUG FLAGS =====
+const DEBUG_DISABLE_DRAG = true; // Set to false to re-enable swap functionality
+const DEBUG_LOCK_VERBOSE = true; // Enhanced logging for lock operations
+
 /**
  * Handle session swap with direct injection (no Jump strategy)
  * Senior Engineer approach: Always inject the new schedule variant
@@ -79,11 +83,21 @@ function handleSwap(courseKey, oldClassName, newClassName, container, customColo
     window.viewIndex = newViewIndex;
     console.log('[handleSwap] Injected at index:', newViewIndex);
 
-    // Add lock for the NEW session (directly manipulate the Set, don't call toggleLock)
-    if (window.lockedGroups) {
-        const lockKey = `${courseKey}|||${sessionType}|||${newClassName}`;
-        window.lockedGroups.add(lockKey);
-        console.log('[handleSwap] Added lock:', lockKey);
+    // Locking: If old session was locked, transfer lock to new session
+    // Otherwise, just add lock for the new session to "pin" this swap
+    if (window.scheduleApp && window.lockedGroups) {
+        const oldLockKey = window.scheduleApp.getLockKey(courseKey, sessionType, oldClassName);
+        const newLockKey = window.scheduleApp.getLockKey(courseKey, sessionType, newClassName);
+
+        // Remove old lock (if it existed) to prevent "impossible" lock state
+        if (window.lockedGroups.has(oldLockKey)) {
+            window.lockedGroups.delete(oldLockKey);
+            console.log('[handleSwap] Removed old lock:', oldLockKey);
+        }
+
+        // Add lock for the new session
+        window.lockedGroups.add(newLockKey);
+        console.log('[handleSwap] Added lock:', newLockKey);
     }
 
     // Clear ghosts BEFORE re-render
@@ -145,6 +159,9 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
     const DAY_START = 8;
     const PX_PER_HOUR = 65;  // Increased for more spacing
 
+    // ===== DEBUG FLAGS =====
+    const DEBUG_DISABLE_DRAG = true; // Set to false to re-enable swap functionality
+    const DEBUG_LOCK_VERBOSE = true; // Enhanced logging for lock operations
     // Parse time "HH:MM" to decimal
     const parseTime = (t) => {
         if (!t) return DAY_START;
@@ -343,9 +360,9 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
         });
 
         // ===================================
-        // DRAG-DROP FUNCTIONALITY (only if enabled)
+        // DRAG-DROP FUNCTIONALITY (only if enabled and not debugging)
         // ===================================
-        if (enableDrag) {
+        if (enableDrag && !DEBUG_DISABLE_DRAG) {
             block.draggable = true;
             block.style.cursor = 'grab';
 
