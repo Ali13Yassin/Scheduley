@@ -191,7 +191,11 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
         const meta = details[courseKey];
         const courseName = meta?.courseName || courseKey || 'Course';
         const badge = getBadge(session.class);
-        const lecturer = session.lecturer || 'TBA';
+        const lecturer = session.lecturer || '';
+        const location = session.location || '';
+
+        // SVG location pin icon (12x12, currentColor for proper theming)
+        const locationIcon = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0; opacity:0.9;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
 
         // Colors with proper contrast
         let bgColor = customColors[courseKey]?.[0] || '#D74C4C';
@@ -252,35 +256,50 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
         const paddingRight = enableLock ? 'padding-right:26px;' : '';
 
         if (isLarge) {
+            // Build footer: lecturer left, location right
+            const lecturerHtml = lecturer ? `<span style="opacity:0.9; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${lecturer}</span>` : '';
+            const locationHtml = location ? `<span style="display:flex; align-items:center; gap:3px; opacity:0.9; flex-shrink:0;">${locationIcon}<span>${location}</span></span>` : '';
+            const footerContent = (lecturer || location)
+                ? `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">${lecturerHtml}${locationHtml}</div>`
+                : '<span style="opacity:0.7;">TBA</span>';
+
             block.innerHTML = `
                 ${lockBtnHtml}
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:auto; padding-right:26px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; padding-right:26px;">
                     <span style="font-size:11px; font-weight:600; line-height:1.3; flex:1; padding-right:6px;">${courseName}</span>
                     <span style="background:${badgeBg}; color:${badgeFg}; padding:2px 6px; border-radius:3px; font-size:9px; font-weight:600; letter-spacing:0.3px; white-space:nowrap;">${badge}</span>
                 </div>
-                <div style="font-size:13px; font-weight:500; letter-spacing:-0.2px; margin:4px 0;">
+                <div style="font-size:14px; font-weight:600; letter-spacing:-0.3px;">
                     ${fmtTime(session.start)} → ${fmtTime(session.end)}
                 </div>
-                <div style="font-size:9px; opacity:0.9; margin-top:auto;">
-                    ${lecturer}
+                <div style="font-size:9px; margin-top:auto;">
+                    ${footerContent}
                 </div>
             `;
         } else if (isMedium) {
+            // For medium blocks: time row, then location on right if present
+            const locationRow = location ? `<div style="display:flex; justify-content:flex-end; align-items:center; gap:2px; font-size:8px; opacity:0.85; margin-top:2px;">${locationIcon}<span>${location}</span></div>` : '';
             block.innerHTML = `
                 ${lockBtnHtml}
                 <div style="display:flex; justify-content:space-between; align-items:center; padding-right:26px;">
                     <span style="font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">${courseName}</span>
                     <span style="background:${badgeBg}; color:${badgeFg}; padding:1px 4px; border-radius:2px; font-size:8px; font-weight:600; margin-left:4px;">${badge}</span>
                 </div>
-                <div style="font-size:11px; font-weight:500; margin-top:4px;">
+                <div style="font-size:12px; font-weight:600; margin-top:2px;">
                     ${fmtTime(session.start)} → ${fmtTime(session.end)}
                 </div>
+                ${locationRow}
             `;
         } else {
+            // Small blocks: compact single row with location on right
+            const locationCompact = location ? `<span style="display:inline-flex; align-items:center; gap:1px; margin-left:4px;">${locationIcon}<span>${location}</span></span>` : '';
             block.innerHTML = `
                 ${lockBtnHtml}
                 <div style="font-size:9px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:26px;">${courseName}</div>
-                <div style="font-size:8px; opacity:0.85;">${fmtTime(session.start)}</div>
+                <div style="font-size:8px; opacity:0.85; display:flex; justify-content:space-between; align-items:center;">
+                    <span>${fmtTime(session.start)}</span>
+                    ${locationCompact}
+                </div>
             `;
         }
 

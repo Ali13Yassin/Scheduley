@@ -190,8 +190,32 @@ export function renderGhosts(alternatives, container, customColors = {}) {
         return h + (m || 0) / 60;
     };
 
+    // 1. Collect all potential ghost blocks first
+    const ghostEntries = [];
     alternatives.forEach((alt, index) => {
         alt.group.forEach(session => {
+            ghostEntries.push({
+                alt,
+                index,
+                session,
+                key: `${session.day}-${session.start}-${session.end}`
+            });
+        });
+    });
+
+    // 2. Group by time slot to handle overlaps
+    const slotGroups = {};
+    ghostEntries.forEach(entry => {
+        if (!slotGroups[entry.key]) slotGroups[entry.key] = [];
+        slotGroups[entry.key].push(entry);
+    });
+
+    // 3. Render ghosts with offsets for overlaps
+    Object.values(slotGroups).forEach(group => {
+        // Sort group if needed (e.g. valid first? or keeping original order is fine)
+
+        group.forEach((entry, groupIndex) => {
+            const { alt, index, session } = entry;
             const dayCol = container.querySelector(`.day-column[data-day="${session.day}"]`);
             if (!dayCol) return;
 
@@ -201,6 +225,14 @@ export function renderGhosts(alternatives, container, customColors = {}) {
             const top = (start - DAY_START) * PX_PER_HOUR;
             const height = Math.max(duration * PX_PER_HOUR, 35);
 
+            // Stacked Card Logic
+            const isStacked = group.length > 1;
+            const xOffset = isStacked ? groupIndex * 6 : 0;
+            const yOffset = isStacked ? groupIndex * 24 : 0; // Larger Y offset to see header
+
+            // Adjust width for stacked items so they don't overflow too much
+            const widthCalc = isStacked ? `calc(100% - 6px - ${xOffset}px)` : 'auto';
+
             const ghost = document.createElement('div');
             ghost.className = `drop-zone-ghost ${alt.isValid ? 'valid' : 'invalid'}`;
             ghost.dataset.altIndex = index;
@@ -209,40 +241,59 @@ export function renderGhosts(alternatives, container, customColors = {}) {
 
             Object.assign(ghost.style, {
                 position: 'absolute',
-                left: '3px',
-                right: '3px',
-                top: `${top}px`,
+                left: isStacked ? `${3 + xOffset}px` : '3px',
+                right: isStacked ? 'auto' : '3px',
+                width: isStacked ? widthCalc : 'auto',
+                top: `${top + yOffset}px`, // Offset top to peek out
                 height: `${height}px`,
                 borderRadius: '6px',
                 border: alt.isValid ? '2px dashed #22C55E' : '2px dashed #EF4444',
                 background: alt.isValid
-                    ? 'repeating-linear-gradient(45deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.1) 4px, rgba(34, 197, 94, 0.05) 4px, rgba(34, 197, 94, 0.05) 8px)'
-                    : 'repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.1) 4px, rgba(239, 68, 68, 0.05) 4px, rgba(239, 68, 68, 0.05) 8px)',
+                    ? 'rgba(255, 255, 255, 0.95)' // Opaque background for stacking
+                    : 'rgba(255, 230, 230, 0.95)',
+                boxShadow: isStacked ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
                 display: 'flex',
-                alignItems: 'center',
+                flexDirection: 'column', // Column to show details
+                alignItems: 'flex-start', // Align text left
                 justifyContent: 'center',
+                padding: '4px 8px',
                 fontSize: '11px',
                 fontWeight: '600',
                 color: alt.isValid ? '#16A34A' : '#DC2626',
-                zIndex: '50',
+                zIndex: 50 + groupIndex, // visual stacking
                 cursor: alt.isValid ? 'pointer' : 'not-allowed',
-                transition: 'transform 0.15s, box-shadow 0.15s'
+                transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s',
+                opacity: '1'
             });
 
-            ghost.innerHTML = alt.isValid
-                ? `<span>📍 ${alt.className}</span>`
-                : `<span>⚠️ Conflict</span>`;
+            // Improved Label with Lecturer
+            const lecturer = session.lecturer ? `• ${session.lecturer.split(' ').slice(0, 2).join(' ')}` : '';
 
-            // Hover effect
+            if (alt.isValid) {
+                ghost.innerHTML = `
+                    <div style="display:flex; align-items:center; width:100%;">
+                        <span>📍 ${alt.className}</span>
+                    </div>
+                    <div style="font-size:9px; font-weight:400; opacity:0.85; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">
+                        ${lecturer}
+                    </div>
+                `;
+            } else {
+                ghost.innerHTML = `<span>⚠️ Conflict</span>`;
+            }
+
+            // Interactive specific to stacked cards
             ghost.addEventListener('mouseenter', () => {
                 if (alt.isValid) {
-                    ghost.style.transform = 'scale(1.02)';
-                    ghost.style.boxShadow = '0 4px 12px rgba(34, 197, 94, 0.3)';
+                    ghost.style.transform = 'scale(1.03) translateY(-2px)';
+                    ghost.style.boxShadow = '0 8px 16px rgba(34, 197, 94, 0.25)';
+                    ghost.style.zIndex = 100; // Bring to front on hover
                 }
             });
             ghost.addEventListener('mouseleave', () => {
-                ghost.style.transform = 'scale(1)';
-                ghost.style.boxShadow = 'none';
+                ghost.style.transform = 'scale(1) translateY(0)';
+                ghost.style.boxShadow = isStacked ? '0 4px 12px rgba(0,0,0,0.15)' : 'none';
+                ghost.style.zIndex = 50 + groupIndex; // Restore stack order
             });
 
             dayCol.appendChild(ghost);
