@@ -90,10 +90,13 @@ function handleSwap(courseKey, oldClassName, newClassName, container, customColo
     window.sessionSwapper.clearGhosts(container);
 
     // Render the new schedule directly (avoid triggering recomputeFilteredIndexes)
+    // CRITICAL: Must enable Drag and Lock explicitly because we might not be in the default container context
+    const renderOptions = { enableDrag: true, enableLock: true };
+
     if (typeof renderSchedule === 'function') {
-        renderSchedule(newSchedule, container.id, customColors);
+        renderSchedule(newSchedule, container.id, customColors, renderOptions);
     } else if (window.renderSchedule) {
-        window.renderSchedule(newSchedule, container.id, customColors);
+        window.renderSchedule(newSchedule, container.id, customColors, renderOptions);
     }
 
     // Update the summary display
