@@ -278,7 +278,27 @@ export function renderGhosts(alternatives, container, customColors = {}) {
             boxSizing: 'border-box',
             cursor: primaryAlt.isValid ? 'pointer' : 'not-allowed',
             transition: 'all 0.2s ease',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            pointerEvents: 'auto' // Fix: Allow interaction
+        });
+
+        // Click Handler for Swap (Click-to-Swap Mode)
+        primaryCard.addEventListener('click', (e) => {
+            e.stopPropagation();
+
+            if (hasMultiple) {
+                // Expand Stack on click (Direct call for robustness)
+                console.log('[Click-Swap] Expanding stack for:', primaryAlt.className);
+                createStack();
+            } else if (primaryAlt.isValid) {
+                // Dispatch Swap Command
+                console.log('[Click-Swap] Single option selected:', primaryAlt.className);
+                const swapEvent = new CustomEvent('swap-command', {
+                    detail: { targetClassName: primaryAlt.className },
+                    bubbles: true
+                });
+                container.dispatchEvent(swapEvent);
+            }
         });
 
         // Primary card content
@@ -377,6 +397,30 @@ export function renderGhosts(alternatives, container, customColors = {}) {
 
                     optionCard.addEventListener('mouseenter', highlight);
                     optionCard.addEventListener('mouseleave', unhighlight);
+
+                    // Click Event (Swap Mode)
+                    optionCard.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        console.log('[Stack-Swap] Clicked option:', alt.className, 'Valid:', alt.isValid);
+
+                        if (alt.isValid) {
+                            const swapEvent = new CustomEvent('swap-command', {
+                                detail: { targetClassName: alt.className },
+                                bubbles: true
+                            });
+
+                            // Try normal dispatch
+                            optionCard.dispatchEvent(swapEvent);
+
+                            // FALLBACK: Manually find the main container and dispatch there too
+                            // because sometimes portals/overlays break bubbling chains
+                            const mainContainer = document.getElementById('schedule-details-container') || document.getElementById('schedule-container');
+                            if (mainContainer) {
+                                console.log('[Stack-Swap] Dispatching direct to cleanup container');
+                                mainContainer.dispatchEvent(swapEvent);
+                            }
+                        }
+                    });
 
                     // Drag Events for Dropping
                     optionCard.addEventListener('dragover', (e) => {
@@ -483,6 +527,77 @@ export function clearGhosts(container) {
     document.querySelectorAll('.ghost-stack-overlay').forEach(p => p.remove()); // New UI removal
 }
 
+/**
+ * Start Swap Mode (Click-to-Swap)
+ * Renders ghosts and enables click interactions
+ * @param {Object} session - Session object to swap
+ * @param {HTMLElement} container - Calendar container
+ * @param {Object} customColors - Color assignments
+ */
+export function startSwapMode(session, container, customColors) {
+    if (!session || !container) return;
+
+    // 1. Calculate Alternatives
+    const sessionType = getSessionType(session.class);
+    const currentSchedule = window.allSchedules ? window.allSchedules[window.viewIndex || 0] : [];
+    const alternatives = getAlternatives(session.course, sessionType, session.class, currentSchedule);
+
+    console.log('[SwapMode] Started for', session.class, 'Found:', alternatives.length);
+
+    if (alternatives.length === 0) {
+        alert("No other available times for this class.");
+        return;
+    }
+
+    // 2. Set up Swap Listener (One-time)
+    const swapHandler = (e) => {
+        const targetClassName = e.detail.targetClassName;
+        console.log('[SwapMode] Swap triggered:', session.class, '->', targetClassName);
+
+        // Execute Swap
+        if (window.handleSwap) {
+            window.handleSwap(
+                session.course,
+                session.class,
+                targetClassName,
+                container,
+                customColors
+            );
+        }
+
+        cleanup();
+    };
+    container.addEventListener('swap-command', swapHandler, { once: true });
+
+    // 3. Render Ghosts
+    renderGhosts(alternatives, container, customColors);
+
+    // 4. Overlay & Cleanup
+    const overlay = document.createElement('div');
+    overlay.className = 'swap-mode-overlay';
+    Object.assign(overlay.style, {
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+        zIndex: '150', // Below ghosts (200)
+        cursor: 'default'
+    });
+
+    // Cleanup Function
+    const cleanup = () => {
+        container.removeEventListener('swap-command', swapHandler);
+        clearGhosts(container);
+        overlay.remove();
+        delete container._swapOverlay;
+    };
+
+    overlay.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cleanup();
+    });
+
+    container.appendChild(overlay);
+    container._swapOverlay = overlay;
+}
+
 // Expose to window for global access
 window.sessionSwapper = {
     getSessionType,
@@ -492,5 +607,6 @@ window.sessionSwapper = {
     performSwap,
     findMatchingScheduleIndex,
     renderGhosts,
-    clearGhosts
+    clearGhosts,
+    startSwapMode // Added
 };

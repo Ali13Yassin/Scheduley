@@ -104,8 +104,7 @@ function handleSwap(courseKey, oldClassName, newClassName, container, customColo
     // Clear ghosts BEFORE re-render
     window.sessionSwapper.clearGhosts(container);
 
-    // Render the new schedule directly (avoid triggering recomputeFilteredIndexes)
-    // CRITICAL: Must enable Drag and Lock explicitly because we might not be in the default container context
+    // Render the new schedule directly
     const renderOptions = { enableDrag: true, enableLock: true };
 
     if (typeof renderSchedule === 'function') {
@@ -120,8 +119,11 @@ function handleSwap(courseKey, oldClassName, newClassName, container, customColo
     if (totalEl) totalEl.textContent = `Found ${window.allSchedules.length} schedules`;
     if (idxEl) idxEl.textContent = `Viewing ${newViewIndex + 1} / ${window.allSchedules.length}`;
 
-    console.log('[handleSwap] Swap complete!');
+    console.log('[handleSwap] Swap complete! Schedule Summary:', newSchedule.map(s => `${s.course} ${s.class} (${s.day} ${s.start})`));
 }
+
+// Expose handleSwap globally so sessionSwapper can call it
+window.handleSwap = handleSwap;
 
 export function renderSchedule(schedule, containerId, customColors = {}, options = {}) {
     const container = document.getElementById(containerId);
@@ -224,6 +226,15 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
         const badgeBg = darken(bgColor, 0.25);
         const badgeFg = '#FFFFFF';
 
+        // --- SVGs ---
+        // Feather Icons: more-vertical, lock, unlock, refresh-cw (swap)
+        const svgs = {
+            menu: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>`,
+            lock: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`,
+            unlock: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`,
+            swap: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`
+        };
+
         // Create block
         const block = document.createElement('div');
         block.className = 'class-block';
@@ -262,16 +273,26 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
         const isMedium = height >= 55;
 
         // Lock button HTML (only if lock is enabled)
+        // Lock Status
         const sessionLocked = enableLock && (window.scheduleApp?.isLocked?.(session.course, session.class) || false);
         if (sessionLocked) {
             block.classList.add('locked');
             block.style.boxShadow = '0 0 0 2px #FFD700, 0 1px 3px rgba(0,0,0,0.12)';
         }
 
-        const lockIcon = sessionLocked ? '🔒' : '🔓';
-        const lockBtnHtml = enableLock
-            ? `<button class="lock-btn" style="position:absolute; top:2px; right:2px; width:24px; height:24px; min-width:24px; background:rgba(255,255,255,0.9); border:none; border-radius:4px; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; z-index:10;">${lockIcon}</button>`
+        // --- 3-Dots Menu Button ---
+        // Replacing the simple lock button with a menu
+        // Replacing the simple lock button with a menu
+        const menuBtnHtml = enableLock
+            // Changed opacity:0 to opacity:0.5 for better discoverability and to fix "invisible" issue
+            ? `<button class="menu-btn" style="position:absolute; top:4px; right:4px; width:22px; height:22px; background:rgba(255,255,255,0.75); border:none; border-radius:4px; cursor:pointer; color:#333; display:flex; align-items:center; justify-content:center; opacity:0.5; transition:all 0.2s; z-index:101; padding:0;">${svgs.menu}</button>`
             : '';
+
+        // Locked indicator (small icon always visible if locked)
+        const lockedIndicator = sessionLocked
+            ? `<div style="position:absolute; top:6px; right:30px; color:#FFD700; opacity:0.9; z-index:100;">${svgs.lock}</div>`
+            : '';
+
         const paddingRight = enableLock ? 'padding-right:26px;' : '';
 
         if (isLarge) {
@@ -283,7 +304,8 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
                 : '<span style="opacity:0.7;">TBA</span>';
 
             block.innerHTML = `
-                ${lockBtnHtml}
+                ${menuBtnHtml}
+                ${lockedIndicator}
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; padding-right:26px;">
                     <span style="font-size:11px; font-weight:600; line-height:1.3; flex:1; padding-right:6px;">${courseName}</span>
                     <span style="background:${badgeBg}; color:${badgeFg}; padding:2px 6px; border-radius:3px; font-size:9px; font-weight:600; letter-spacing:0.3px; white-space:nowrap;">${badge}</span>
@@ -299,7 +321,8 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
             // For medium blocks: time row, then location on right if present
             const locationRow = location ? `<div style="display:flex; justify-content:flex-end; align-items:center; gap:2px; font-size:8px; opacity:0.85; margin-top:2px;">${locationIcon}<span>${location}</span></div>` : '';
             block.innerHTML = `
-                ${lockBtnHtml}
+                ${menuBtnHtml}
+                ${lockedIndicator}
                 <div style="display:flex; justify-content:space-between; align-items:center; padding-right:26px;">
                     <span style="font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">${courseName}</span>
                     <span style="background:${badgeBg}; color:${badgeFg}; padding:1px 4px; border-radius:2px; font-size:8px; font-weight:600; margin-left:4px;">${badge}</span>
@@ -313,7 +336,8 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
             // Small blocks: compact single row with location on right
             const locationCompact = location ? `<span style="display:inline-flex; align-items:center; gap:1px; margin-left:4px;">${locationIcon}<span>${location}</span></span>` : '';
             block.innerHTML = `
-                ${lockBtnHtml}
+                ${menuBtnHtml}
+                ${lockedIndicator}
                 <div style="font-size:9px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:26px;">${courseName}</div>
                 <div style="font-size:8px; opacity:0.85; display:flex; justify-content:space-between; align-items:center;">
                     <span>${fmtTime(session.start)}</span>
@@ -322,23 +346,97 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
             `;
         }
 
-        // Show lock button always if locked, otherwise on hover
-        const lockBtn = block.querySelector('.lock-btn');
-        if (lockBtn) {
-            if (sessionLocked) {
-                lockBtn.style.opacity = '1';
-            }
-
-            // Lock button click handler (using addEventListener)
-            lockBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
+        // Show Menu Button on hover
+        const menuBtn = block.querySelector('.menu-btn');
+        if (menuBtn) {
+            // Dropdown Menu Logic
+            menuBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (window.scheduleApp?.toggleLock) {
-                    window.scheduleApp.toggleLock(session.course, session.class);
-                }
+                e.stopPropagation();
+
+                // Close any unique open menus first (simple global cleanup)
+                document.querySelectorAll('.block-menu-dropdown').forEach(m => m.remove());
+
+                // Create Dropdown
+                const menu = document.createElement('div');
+                menu.className = 'block-menu-dropdown';
+                Object.assign(menu.style, {
+                    position: 'absolute',
+                    top: '28px',
+                    right: '4px',
+                    background: '#FFFFFF',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    zIndex: '200', // Above everything
+                    minWidth: '120px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '4px'
+                });
+
+                // Lock Option
+                const lockItem = document.createElement('button');
+                const isL = sessionLocked;
+                lockItem.innerHTML = `<span style="margin-right:8px; display:flex;">${isL ? svgs.unlock : svgs.lock}</span> ${isL ? 'Unlock' : 'Lock'}`;
+                Object.assign(lockItem.style, {
+                    background: 'none', border: 'none', textAlign: 'left',
+                    padding: '8px 12px', fontSize: '13px', color: '#374151',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    borderRadius: '4px', fontFamily: 'inherit'
+                });
+                lockItem.onmouseenter = () => lockItem.style.background = '#F3F4F6';
+                lockItem.onmouseleave = () => lockItem.style.background = 'transparent';
+
+                lockItem.onclick = (evt) => {
+                    evt.stopPropagation();
+                    if (window.scheduleApp?.toggleLock) {
+                        window.scheduleApp.toggleLock(session.course, session.class);
+                    }
+                    menu.remove();
+                };
+
+                // Swap Option
+                const swapItem = document.createElement('button');
+                swapItem.innerHTML = `<span style="margin-right:8px; display:flex;">${svgs.swap}</span> Swap`;
+                Object.assign(swapItem.style, {
+                    background: 'none', border: 'none', textAlign: 'left',
+                    padding: '8px 12px', fontSize: '13px', color: '#374151',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    borderRadius: '4px', fontFamily: 'inherit'
+                });
+                swapItem.onmouseenter = () => swapItem.style.background = '#F3F4F6';
+                swapItem.onmouseleave = () => swapItem.style.background = 'transparent';
+
+                swapItem.onclick = (evt) => {
+                    evt.stopPropagation();
+                    menu.remove();
+                    // Trigger Swap Mode
+                    if (window.sessionSwapper?.startSwapMode) {
+                        window.sessionSwapper.startSwapMode(session, container, customColors);
+                    } else {
+                        console.error("startSwapMode not found on window.sessionSwapper");
+                    }
+                };
+
+                menu.appendChild(lockItem);
+                menu.appendChild(swapItem);
+                block.appendChild(menu);
+
+                // Close on click outside
+                const closeHandler = (evt) => {
+                    if (!menu.contains(evt.target) && evt.target !== menuBtn) {
+                        menu.remove();
+                        document.removeEventListener('click', closeHandler);
+                    }
+                };
+                // Delay adding listener to avoid immediate close
+                setTimeout(() => document.addEventListener('click', closeHandler), 0);
             });
         }
 
+        // Elegant hover using addEventListener (no overwriting)
         // Elegant hover using addEventListener (no overwriting)
         block.addEventListener('mouseenter', () => {
             block.style.transform = 'translateY(-1px)';
@@ -346,7 +444,9 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
                 ? '0 0 0 2px #FFD700, 0 4px 12px rgba(0,0,0,0.15)'
                 : '0 4px 12px rgba(0,0,0,0.15)';
             block.style.zIndex = '5';
-            if (lockBtn) lockBtn.style.opacity = '1';
+
+            const btn = block.querySelector('.menu-btn');
+            if (btn) btn.style.opacity = '1';
         });
         block.addEventListener('mouseleave', () => {
             block.style.transform = 'translateY(0)';
@@ -354,7 +454,9 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
                 ? '0 0 0 2px #FFD700, 0 1px 3px rgba(0,0,0,0.12)'
                 : '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)';
             block.style.zIndex = '1';
-            if (lockBtn && !sessionLocked) lockBtn.style.opacity = '0';
+
+            const btn = block.querySelector('.menu-btn');
+            if (btn) btn.style.opacity = '0';
         });
 
         // ===================================
@@ -516,7 +618,7 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
                         <div><span class="label">Lecturer</span>${lecturer}</div>
                         <div><span class="label">Location</span>${session.location || 'TBA'}</div>
                     </div>
-                `;
+            `;
                 tooltip.style.borderLeftColor = bgColor;
 
                 const pad = 10;

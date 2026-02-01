@@ -5,7 +5,7 @@ import { showAlert } from './alert.js';
 let worker = new Worker("../js/scheduleFinder.js");
 
 // Initialize the file handler
-initFileHandler(); //TODO: only load when needed
+initFileHandler(); //TODO: only load when needed 
 
 // Check if website is loaded on mobile
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
