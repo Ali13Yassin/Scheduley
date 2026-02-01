@@ -1,7 +1,10 @@
 // ===================================
 // SESSION SWAPPER MODULE
 // Drag-Drop Swap Functionality
+// VERSION: IN-PLACE-STACK-V2
 // ===================================
+
+console.log("%c SessionSwapper Loaded: IN-PLACE-STACK-V2 ", "background: #222; color: #bada55");
 
 /**
  * Get session type from class name
@@ -303,220 +306,133 @@ export function renderGhosts(alternatives, container, customColors = {}) {
 
         ghostContainer.appendChild(primaryCard);
 
-        // --- Expandable Options Popover (only if multiple) ---
+        // --- In-Place Stack (The "Split" Design) ---
         if (hasMultiple) {
-            const popover = document.createElement('div');
-            popover.className = 'ghost-options-popover';
+            // Ensure ghost container allows overflow for the stack
+            ghostContainer.style.overflow = 'visible';
+            ghostContainer.style.zIndex = '100'; // Bring to front
 
-            // Portal Pattern: Append to body to avoid clipping
-            document.body.appendChild(popover);
+            let stackOverlay = null;
+            let hideTimeout = null;
 
-            // Initial style (hidden)
-            Object.assign(popover.style, {
-                position: 'fixed', // Fixed for viewport-relative positioning
-                background: '#fff',
-                borderRadius: '8px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
-                border: '1px solid #d1d5db',
-                padding: '6px',
-                zIndex: '9999', // Maximum Z-Index
-                opacity: '0',
-                pointerEvents: 'none',
-                transition: 'opacity 0.15s ease, transform 0.15s ease',
-                maxHeight: '220px',
-                overflowY: 'auto',
-                width: '180px', // Wider easier to hit
-                top: '0px',
-                left: '0px'
-            });
+            const createStack = () => {
+                if (stackOverlay) return; // Already created
 
-            // Add header
-            const popoverHeader = document.createElement('div');
-            Object.assign(popoverHeader.style, {
-                fontSize: '10px',
-                fontWeight: '600',
-                color: '#6b7280',
-                padding: '4px 8px',
-                borderBottom: '1px solid #f3f4f6',
-                marginBottom: '4px'
-            });
-            popoverHeader.textContent = `${group.length} options available`;
-            popover.appendChild(popoverHeader);
+                stackOverlay = document.createElement('div');
+                stackOverlay.className = 'ghost-stack-overlay';
 
-            // Add each option
-            group.forEach((entry, idx) => {
-                const { alt, session: sess } = entry;
-                const optionCard = document.createElement('div');
-                optionCard.className = `drop-zone-ghost ${alt.isValid ? 'valid' : 'invalid'}`;
+                // USER REQUEST: Inside the container itself.
+                ghostContainer.appendChild(stackOverlay);
 
-                // CRITICAL: Attach data to the CARD inside the popover so drop events work
-                optionCard.dataset.altIndex = entry.index;
-                optionCard.dataset.className = alt.className;
-                optionCard.dataset.course = sess.course;
-
-                const optLecturer = sess.lecturer ? sess.lecturer.split(' ').slice(0, 2).join(' ') : 'TBA';
-                const optLocation = sess.location || '';
-
-                Object.assign(optionCard.style, {
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    marginBottom: idx < group.length - 1 ? '4px' : '0',
-                    background: alt.isValid ? '#f0fdf4' : '#fef2f2',
-                    border: alt.isValid ? '1px solid #bbf7d0' : '1px solid #fecaca',
-                    cursor: alt.isValid ? 'pointer' : 'not-allowed',
-                    transition: 'background 0.15s ease'
+                Object.assign(stackOverlay.style, {
+                    position: 'absolute',
+                    top: '-5px', // Slight overlap to cover
+                    left: '-5px',
+                    width: 'calc(100% + 10px)', // Slightly wider to cover borders
+                    height: 'auto',
+                    maxHeight: '300px',
+                    zIndex: '9999',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
                 });
 
-                optionCard.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <div style="font-size:11px; font-weight:600; color:${alt.isValid ? '#166534' : '#DC2626'};">
-                                ${alt.className}
+                // Render ALL options as cards in the stack
+                group.forEach((entry, idx) => {
+                    const { alt, session: sess } = entry;
+                    const optionCard = document.createElement('div');
+
+                    const optLecturer = sess.lecturer ? sess.lecturer.split(' ').slice(0, 2).join(' ') : 'TBA';
+                    const optLocation = sess.location || '';
+
+                    Object.assign(optionCard.style, {
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        background: alt.isValid ? '#f0fdf4' : '#fef2f2',
+                        border: alt.isValid ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                        cursor: alt.isValid ? 'pointer' : 'not-allowed',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        transition: 'transform 0.1s ease',
+                        flexShrink: 0,
+                        position: 'relative' // For z-index context
+                    });
+
+                    optionCard.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-size:11px; font-weight:600; color:${alt.isValid ? '#166534' : '#DC2626'};">
+                                    ${alt.className}
+                                </div>
+                                <div style="font-size:9px; color:#666; margin-top:1px;">
+                                    ${optLecturer}${optLocation ? ` • ${optLocation}` : ''}
+                                </div>
                             </div>
-                            <div style="font-size:9px; color:#666; margin-top:1px;">
-                                ${optLecturer}${optLocation ? ` • ${optLocation}` : ''}
-                            </div>
+                            ${alt.isValid ? '' : '<span style="font-size:10px; color:#EF4444;">✗</span>'}
                         </div>
-                        ${alt.isValid
-                        ? `<span style="font-size:10px; color:#22C55E;">✓ Valid</span>`
-                        : `<span style="font-size:10px; color:#EF4444;">✗</span>`
-                    }
-                    </div>
-                `;
+                    `;
 
-                // Hover effect for option
-                if (alt.isValid) {
-                    optionCard.addEventListener('mouseenter', () => {
-                        optionCard.style.background = '#dcfce7';
+                    // Hover/Drag effects
+                    const highlight = () => { optionCard.style.transform = 'scale(1.02)'; optionCard.style.background = '#dcfce7'; optionCard.style.zIndex = '10'; };
+                    const unhighlight = () => { optionCard.style.transform = 'scale(1)'; optionCard.style.background = '#f0fdf4'; optionCard.style.zIndex = '1'; };
+
+                    optionCard.addEventListener('mouseenter', highlight);
+                    optionCard.addEventListener('mouseleave', unhighlight);
+
+                    // Drag Events for Dropping
+                    optionCard.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        highlight();
                     });
-                    optionCard.addEventListener('mouseleave', () => {
-                        optionCard.style.background = '#f0fdf4';
-                    });
-                }
+                    optionCard.addEventListener('dragleave', unhighlight);
 
-                // ALLOW DROP ON OPTION CARD
-                optionCard.addEventListener('dragover', (e) => {
-                    e.preventDefault(); // Important
-                    e.dataTransfer.dropEffect = 'move';
-                    optionCard.style.transform = 'scale(1.02)';
-                });
-                optionCard.addEventListener('dragleave', () => {
-                    optionCard.style.transform = 'scale(1)';
-                });
-                optionCard.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // Manually trigger the drop logic found in uiFunctions (since it listens on ghosts)
-                    // But simpler: just populate the dataTransfer or call a global handler?
-                    // Better: uiFunctions attaches listeners to .drop-zone-ghost.
-                    // The global selector in uiFunctions only finds ghosts in 'container'. 
-                    // Since we moved this to body, uiFunctions listeners WON'T attach automatically.
-                    // We must manually trigger the logic.
+                    optionCard.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (window._dragContext && window._dragContext.active) {
+                            const ctx = window._dragContext;
 
-                    if (window._dragContext && window._dragContext.active) {
-                        const ctx = window._dragContext;
-                        window._dragContext.active = false; // consume
-
-                        // Import handleSwap dynamically or assume global access? 
-                        // uiFunctions exports it, but we can't import easily here.
-                        // But wait, uiFunctions listens to drop on ghosts.
-                        // We can dispatch a custom event or call a global helper if available.
-                        // The CLEANEST way: Let uiFunctions handle the drop logic by exposing a callback.
-                        // FOR NOW: We will dispatch a bubbling event on the ghostContainer (which is in the calendar)
-                        // Wait, this is in body. Bubbling won't reach the calendar.
-
-                        // BACKUP STRATEGY: Call the global handleSwap if exposed, or emit event to window.
-                        if (typeof window.scheduleApp?.handleSwap === 'function') {
-                            // This needs handleSwap exposed in window.scheduleApp in uiFunctions.js
-                            // We will add that.
-                        } else {
-                            // Dispatch to main container
+                            // Dispatch to main container to trigger swap
                             const dropEvent = new CustomEvent('manual-drop', {
                                 detail: { className: alt.className }
                             });
-                            ctx.container.dispatchEvent(dropEvent);
+                            if (ctx.container) ctx.container.dispatchEvent(dropEvent);
+
+                            removeStack();
                         }
-                    }
+                    });
+
+                    stackOverlay.appendChild(optionCard);
                 });
 
-                popover.appendChild(optionCard);
-            });
+                // Interaction Logic
+                stackOverlay.addEventListener('mouseleave', scheduleRemoval);
+                stackOverlay.addEventListener('mouseenter', cancelRemoval);
+                stackOverlay.addEventListener('dragenter', cancelRemoval);
+                stackOverlay.addEventListener('dragover', (e) => { e.preventDefault(); cancelRemoval(); });
+            };
 
-            // Store reference to clean up later
-            if (!container._activePopovers) container._activePopovers = [];
-            container._activePopovers.push(popover);
-
-            // --- Hover to expand (Mouse + Drag) ---
-            let hoverTimeout;
-
-            const positionPopover = () => {
-                const rect = ghostContainer.getBoundingClientRect();
-                const popoverHeight = popover.offsetHeight || 200;
-                const spaceBelow = window.innerHeight - rect.bottom;
-
-                // Default below
-                let top = rect.bottom + 5;
-
-                // If not enough space below, go above
-                if (spaceBelow < popoverHeight && rect.top > popoverHeight) {
-                    top = rect.top - popoverHeight - 5;
+            const removeStack = () => {
+                if (stackOverlay) {
+                    stackOverlay.remove();
+                    stackOverlay = null;
                 }
-
-                popover.style.top = `${top}px`;
-                // Center horizontally relative to ghost, but keep onscreen
-                let left = rect.left - (180 - rect.width) / 2;
-                left = Math.max(10, Math.min(window.innerWidth - 190, left));
-
-                popover.style.left = `${left}px`;
             };
 
-            const expandPopover = () => {
-                clearTimeout(hoverTimeout); // Cancel any hide timer
-                // hoverTimeout = setTimeout(() => { // Instant is better for drag
-                positionPopover();
-                popover.style.opacity = '1';
-                popover.style.pointerEvents = 'auto';
-                popover.style.transform = 'translateY(0)';
-                primaryCard.style.boxShadow = '0 4px 16px rgba(34, 197, 94, 0.4)';
-                // }, 10);
+            const scheduleRemoval = () => {
+                clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(removeStack, 100);
             };
 
-            const hidePopover = () => {
-                hoverTimeout = setTimeout(() => {
-                    popover.style.opacity = '0';
-                    popover.style.pointerEvents = 'none';
-                    popover.style.transform = 'translateY(-5px)';
-                    primaryCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-                }, 150); // Small delay to allow moving mouse to popover
+            const cancelRemoval = () => {
+                clearTimeout(hideTimeout);
             };
 
-            // Ghost Interaction
-            ghostContainer.addEventListener('mouseenter', expandPopover);
-            ghostContainer.addEventListener('mouseleave', hidePopover);
-
-            // Popover Interaction (Keep open)
-            popover.addEventListener('mouseenter', () => clearTimeout(hoverTimeout));
-            popover.addEventListener('mouseleave', hidePopover);
-
-            // Drag Interaction
+            // Triggers on the Base Ghost
+            ghostContainer.addEventListener('mouseenter', createStack);
             ghostContainer.addEventListener('dragenter', (e) => {
                 e.preventDefault();
-                expandPopover();
-            });
-            ghostContainer.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                expandPopover(); // Keep calling to ensure it stays
-            });
-            // Fix Flickering: Check relatedTarget
-            ghostContainer.addEventListener('dragleave', (e) => {
-                if (!ghostContainer.contains(e.relatedTarget) && !popover.contains(e.relatedTarget)) {
-                    hidePopover();
-                }
-            });
-
-            // Allow dragging over the popover itself
-            popover.addEventListener('dragover', (e) => {
-                e.preventDefault(); // Allow drop
+                createStack();
             });
         }
 
@@ -562,8 +478,9 @@ export function clearGhosts(container) {
         container._activePopovers = [];
     }
 
-    // Fallback: Remove any stray popovers
+    // Fallback: Remove any stray popovers/stacks
     document.querySelectorAll('.ghost-options-popover').forEach(p => p.remove());
+    document.querySelectorAll('.ghost-stack-overlay').forEach(p => p.remove()); // New UI removal
 }
 
 // Expose to window for global access
