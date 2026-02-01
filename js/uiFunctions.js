@@ -2,8 +2,8 @@
 // Following industry best practices for calendar UI/UX
 
 // ===== DEBUG FLAGS =====
-const DEBUG_DISABLE_DRAG = true; // Set to false to re-enable swap functionality
-const DEBUG_LOCK_VERBOSE = true; // Enhanced logging for lock operations
+const DEBUG_DISABLE_DRAG = false; // Drag enabled
+const DEBUG_LOCK_VERBOSE = true; // Keep verbose logging for verification
 
 /**
  * Handle session swap with direct injection (no Jump strategy)
@@ -83,21 +83,22 @@ function handleSwap(courseKey, oldClassName, newClassName, container, customColo
     window.viewIndex = newViewIndex;
     console.log('[handleSwap] Injected at index:', newViewIndex);
 
-    // Locking: If old session was locked, transfer lock to new session
-    // Otherwise, just add lock for the new session to "pin" this swap
+    // Lockwood Logic Update (User Requested):
+    // 1. If old session was locked -> UNLOCK IT (User changed their mind).
+    // 2. Do NOT lock the new session (Manual locking only).
+    // 3. Result: Moving any session results in an UNLOCKED session.
     if (window.scheduleApp && window.lockedGroups) {
         const oldLockKey = window.scheduleApp.getLockKey(courseKey, sessionType, oldClassName);
-        const newLockKey = window.scheduleApp.getLockKey(courseKey, sessionType, newClassName);
+        // const newLockKey = window.scheduleApp.getLockKey(courseKey, sessionType, newClassName); // Not used anymore
 
-        // Remove old lock (if it existed) to prevent "impossible" lock state
+        // Remove old lock (if it existed)
         if (window.lockedGroups.has(oldLockKey)) {
             window.lockedGroups.delete(oldLockKey);
-            console.log('[handleSwap] Removed old lock:', oldLockKey);
+            console.log('[handleSwap] Removed old lock (Mind Changer):', oldLockKey);
         }
 
-        // Add lock for the new session
-        window.lockedGroups.add(newLockKey);
-        console.log('[handleSwap] Added lock:', newLockKey);
+        // DO NOT add new lock. Zero auto-locking.
+        console.log('[handleSwap] New session remains UNLOCKED (Manual Lock Only)');
     }
 
     // Clear ghosts BEFORE re-render
@@ -160,8 +161,8 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
     const PX_PER_HOUR = 65;  // Increased for more spacing
 
     // ===== DEBUG FLAGS =====
-    const DEBUG_DISABLE_DRAG = true; // Set to false to re-enable swap functionality
-    const DEBUG_LOCK_VERBOSE = true; // Enhanced logging for lock operations
+    // const DEBUG_DISABLE_DRAG = true; // REMOVED: Uses global flag
+    // const DEBUG_LOCK_VERBOSE = true; // REMOVED: Uses global flag
     // Parse time "HH:MM" to decimal
     const parseTime = (t) => {
         if (!t) return DAY_START;
@@ -406,6 +407,30 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
                     if (alternatives.length > 0) {
                         window.sessionSwapper.renderGhosts(alternatives, container, customColors);
 
+                        // Manual Drop Handler for Portal Popovers
+                        // Since popovers are in document.body, events don't bubble to the ghost naturally.
+                        // We dispatched a 'manual-drop' event to the container instead.
+                        const manualDropHandler = (evt) => {
+                            console.log('[manual-drop] Triggered:', evt.detail);
+                            const targetClassName = evt.detail.className;
+
+                            if (window._dragContext && window._dragContext.active) {
+                                const ctx = window._dragContext;
+                                window._dragContext.active = false;
+
+                                handleSwap(
+                                    ctx.course,
+                                    ctx.className,
+                                    targetClassName,
+                                    ctx.container,
+                                    ctx.customColors
+                                );
+                            }
+                        };
+
+                        // Attach once, cleanup on dragend
+                        container.addEventListener('manual-drop', manualDropHandler, { once: true });
+
                         // Standard HTML5 DnD: Enable dropping on ghosts
                         container.querySelectorAll('.drop-zone-ghost.valid').forEach(ghost => {
                             // MUST prevent default on dragover to allow dropping
@@ -455,6 +480,11 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
             });
 
             block.addEventListener('dragend', () => {
+                // Cleanup
+                if (window._dragContext && window._dragContext.manualDropHandler) {
+                    container.removeEventListener('manual-drop', window._dragContext.manualDropHandler);
+                }
+
                 block.classList.remove('dragging');
                 block.style.opacity = '1';
                 block.style.cursor = 'grab';

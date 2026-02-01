@@ -308,23 +308,26 @@ export function renderGhosts(alternatives, container, customColors = {}) {
             const popover = document.createElement('div');
             popover.className = 'ghost-options-popover';
 
+            // Portal Pattern: Append to body to avoid clipping
+            document.body.appendChild(popover);
+
+            // Initial style (hidden)
             Object.assign(popover.style, {
-                position: 'absolute',
-                top: `${height + 4}px`,
-                left: '0',
-                right: '0',
+                position: 'fixed', // Fixed for viewport-relative positioning
                 background: '#fff',
                 borderRadius: '8px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
                 border: '1px solid #d1d5db',
                 padding: '6px',
-                zIndex: '300', // Very high to appear above everything
+                zIndex: '9999', // Maximum Z-Index
                 opacity: '0',
-                transform: 'translateY(-8px)',
                 pointerEvents: 'none',
                 transition: 'opacity 0.15s ease, transform 0.15s ease',
-                maxHeight: '200px',
-                overflowY: 'auto'
+                maxHeight: '220px',
+                overflowY: 'auto',
+                width: '180px', // Wider easier to hit
+                top: '0px',
+                left: '0px'
             });
 
             // Add header
@@ -345,6 +348,8 @@ export function renderGhosts(alternatives, container, customColors = {}) {
                 const { alt, session: sess } = entry;
                 const optionCard = document.createElement('div');
                 optionCard.className = `drop-zone-ghost ${alt.isValid ? 'valid' : 'invalid'}`;
+
+                // CRITICAL: Attach data to the CARD inside the popover so drop events work
                 optionCard.dataset.altIndex = entry.index;
                 optionCard.dataset.className = alt.className;
                 optionCard.dataset.course = sess.course;
@@ -374,7 +379,7 @@ export function renderGhosts(alternatives, container, customColors = {}) {
                         </div>
                         ${alt.isValid
                         ? `<span style="font-size:10px; color:#22C55E;">✓ Valid</span>`
-                        : `<span style="font-size:10px; color:#EF4444;">✗ Conflict</span>`
+                        : `<span style="font-size:10px; color:#EF4444;">✗</span>`
                     }
                     </div>
                 `;
@@ -389,72 +394,129 @@ export function renderGhosts(alternatives, container, customColors = {}) {
                     });
                 }
 
+                // ALLOW DROP ON OPTION CARD
+                optionCard.addEventListener('dragover', (e) => {
+                    e.preventDefault(); // Important
+                    e.dataTransfer.dropEffect = 'move';
+                    optionCard.style.transform = 'scale(1.02)';
+                });
+                optionCard.addEventListener('dragleave', () => {
+                    optionCard.style.transform = 'scale(1)';
+                });
+                optionCard.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Manually trigger the drop logic found in uiFunctions (since it listens on ghosts)
+                    // But simpler: just populate the dataTransfer or call a global handler?
+                    // Better: uiFunctions attaches listeners to .drop-zone-ghost.
+                    // The global selector in uiFunctions only finds ghosts in 'container'. 
+                    // Since we moved this to body, uiFunctions listeners WON'T attach automatically.
+                    // We must manually trigger the logic.
+
+                    if (window._dragContext && window._dragContext.active) {
+                        const ctx = window._dragContext;
+                        window._dragContext.active = false; // consume
+
+                        // Import handleSwap dynamically or assume global access? 
+                        // uiFunctions exports it, but we can't import easily here.
+                        // But wait, uiFunctions listens to drop on ghosts.
+                        // We can dispatch a custom event or call a global helper if available.
+                        // The CLEANEST way: Let uiFunctions handle the drop logic by exposing a callback.
+                        // FOR NOW: We will dispatch a bubbling event on the ghostContainer (which is in the calendar)
+                        // Wait, this is in body. Bubbling won't reach the calendar.
+
+                        // BACKUP STRATEGY: Call the global handleSwap if exposed, or emit event to window.
+                        if (typeof window.scheduleApp?.handleSwap === 'function') {
+                            // This needs handleSwap exposed in window.scheduleApp in uiFunctions.js
+                            // We will add that.
+                        } else {
+                            // Dispatch to main container
+                            const dropEvent = new CustomEvent('manual-drop', {
+                                detail: { className: alt.className }
+                            });
+                            ctx.container.dispatchEvent(dropEvent);
+                        }
+                    }
+                });
+
                 popover.appendChild(optionCard);
             });
 
-            ghostContainer.appendChild(popover);
+            // Store reference to clean up later
+            if (!container._activePopovers) container._activePopovers = [];
+            container._activePopovers.push(popover);
 
             // --- Hover to expand (Mouse + Drag) ---
             let hoverTimeout;
+
+            const positionPopover = () => {
+                const rect = ghostContainer.getBoundingClientRect();
+                const popoverHeight = popover.offsetHeight || 200;
+                const spaceBelow = window.innerHeight - rect.bottom;
+
+                // Default below
+                let top = rect.bottom + 5;
+
+                // If not enough space below, go above
+                if (spaceBelow < popoverHeight && rect.top > popoverHeight) {
+                    top = rect.top - popoverHeight - 5;
+                }
+
+                popover.style.top = `${top}px`;
+                // Center horizontally relative to ghost, but keep onscreen
+                let left = rect.left - (180 - rect.width) / 2;
+                left = Math.max(10, Math.min(window.innerWidth - 190, left));
+
+                popover.style.left = `${left}px`;
+            };
+
             const expandPopover = () => {
-                hoverTimeout = setTimeout(() => {
-                    // Calculate if popover would go off-screen (show above if near bottom)
-                    const containerRect = container.getBoundingClientRect();
-                    const ghostRect = ghostContainer.getBoundingClientRect();
-                    const estimatedPopoverHeight = Math.min(group.length * 50 + 40, 200);
-
-                    const spaceBelow = containerRect.bottom - ghostRect.bottom;
-                    const spaceAbove = ghostRect.top - containerRect.top;
-
-                    if (spaceBelow < estimatedPopoverHeight && spaceAbove > estimatedPopoverHeight) {
-                        // Position ABOVE the card
-                        popover.style.top = 'auto';
-                        popover.style.bottom = `${height + 4}px`;
-                        popover.style.transform = 'translateY(0)';
-                    } else {
-                        // Position BELOW the card (default)
-                        popover.style.bottom = 'auto';
-                        popover.style.top = `${height + 4}px`;
-                        popover.style.transform = 'translateY(0)';
-                    }
-
-                    popover.style.opacity = '1';
-                    popover.style.pointerEvents = 'auto';
-                    primaryCard.style.boxShadow = '0 4px 16px rgba(34, 197, 94, 0.2)';
-                }, 50); // Faster expansion during drag/interaction
+                clearTimeout(hoverTimeout); // Cancel any hide timer
+                // hoverTimeout = setTimeout(() => { // Instant is better for drag
+                positionPopover();
+                popover.style.opacity = '1';
+                popover.style.pointerEvents = 'auto';
+                popover.style.transform = 'translateY(0)';
+                primaryCard.style.boxShadow = '0 4px 16px rgba(34, 197, 94, 0.4)';
+                // }, 10);
             };
 
             const hidePopover = () => {
-                clearTimeout(hoverTimeout);
-                popover.style.opacity = '0';
-                popover.style.transform = 'translateY(-8px)';
-                popover.style.pointerEvents = 'none';
-                primaryCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                hoverTimeout = setTimeout(() => {
+                    popover.style.opacity = '0';
+                    popover.style.pointerEvents = 'none';
+                    popover.style.transform = 'translateY(-5px)';
+                    primaryCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                }, 150); // Small delay to allow moving mouse to popover
             };
 
+            // Ghost Interaction
             ghostContainer.addEventListener('mouseenter', expandPopover);
             ghostContainer.addEventListener('mouseleave', hidePopover);
 
-            // Support expansion during Drag operations
+            // Popover Interaction (Keep open)
+            popover.addEventListener('mouseenter', () => clearTimeout(hoverTimeout));
+            popover.addEventListener('mouseleave', hidePopover);
+
+            // Drag Interaction
             ghostContainer.addEventListener('dragenter', (e) => {
-                e.preventDefault(); // allow drop
+                e.preventDefault();
                 expandPopover();
             });
             ghostContainer.addEventListener('dragover', (e) => {
-                e.preventDefault(); // allow drop and keep open
-                if (popover.style.opacity !== '1') expandPopover();
+                e.preventDefault();
+                expandPopover(); // Keep calling to ensure it stays
             });
+            // Fix Flickering: Check relatedTarget
             ghostContainer.addEventListener('dragleave', (e) => {
-                // Only hide if leaving the main container, not entering a child
-                if (!ghostContainer.contains(e.relatedTarget)) {
+                if (!ghostContainer.contains(e.relatedTarget) && !popover.contains(e.relatedTarget)) {
                     hidePopover();
                 }
             });
 
-            // Ensure popover itself keeps it open
+            // Allow dragging over the popover itself
             popover.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.stopPropagation(); // Prevent bubbling to container which might close it
+                e.preventDefault(); // Allow drop
             });
         }
 
@@ -489,9 +551,19 @@ export function renderGhosts(alternatives, container, customColors = {}) {
  */
 export function clearGhosts(container) {
     if (!container) return;
-    container.querySelectorAll('.drop-zone-ghost-container').forEach(g => g.remove());
-    container.querySelectorAll('.drop-zone-ghost').forEach(g => g.remove());
-    container.querySelectorAll('.ghost-options-popover').forEach(g => g.remove());
+
+    // Remove local ghosts
+    const ghosts = container.querySelectorAll('.drop-zone-ghost-container');
+    ghosts.forEach(g => g.remove());
+
+    // Remove Portal Popovers (tracked in container property)
+    if (container._activePopovers) {
+        container._activePopovers.forEach(p => p.remove());
+        container._activePopovers = [];
+    }
+
+    // Fallback: Remove any stray popovers
+    document.querySelectorAll('.ghost-options-popover').forEach(p => p.remove());
 }
 
 // Expose to window for global access

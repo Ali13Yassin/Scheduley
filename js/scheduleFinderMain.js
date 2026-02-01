@@ -116,7 +116,8 @@ function getSelectedFilters() {
     return filterData;
 }
 
-let viewIndex = 0;
+// let viewIndex = 0; // REMOVED: Use window.viewIndex as single source of truth
+window.viewIndex = window.viewIndex || 0; // Ensure initialized
 let filteredIndexes = null; // array of indexes into allSchedules matching active filter
 let activeDayOff = null; // e.g., 'MON' or null
 
@@ -182,9 +183,9 @@ function toggleLock(course, className) {
     updateResultsSummary();
     // Re-render to update lock icons
     const schedules = window.allSchedules || [];
-    if (schedules.length > 0 && schedules[viewIndex]) {
-        console.log('[toggleLock] Re-rendering schedule at viewIndex:', viewIndex);
-        renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    if (schedules.length > 0 && schedules[window.viewIndex]) {
+        console.log('[toggleLock] Re-rendering schedule at viewIndex:', window.viewIndex);
+        renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
     }
     console.log('[toggleLock] ===== END =====');
 }
@@ -204,8 +205,8 @@ function clearAllLocks() {
     recomputeFilteredIndexes();
     updateResultsSummary();
     const schedules = window.allSchedules || [];
-    if (schedules.length > 0 && schedules[viewIndex]) {
-        renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    if (schedules.length > 0 && schedules[window.viewIndex]) {
+        renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
     }
 }
 
@@ -354,7 +355,7 @@ function updateResultsSummary() {
     if (totalEl) totalEl.textContent = `Found ${total} schedules`;
 
     const currentTotal = filteredIndexes ? filteredIndexes.length : total;
-    const displayIdx = currentTotal > 0 ? ((filteredIndexes ? filteredIndexes.indexOf(viewIndex) : viewIndex) + 1) : 0;
+    const displayIdx = currentTotal > 0 ? ((filteredIndexes ? filteredIndexes.indexOf(window.viewIndex) : window.viewIndex) + 1) : 0;
     if (idxEl) idxEl.textContent = currentTotal > 0 ? `Viewing ${displayIdx} / ${currentTotal}` : '–';
 
     if (filterEl) {
@@ -380,7 +381,7 @@ function applyDayOffFilter(day) {
     // Render based on current filter
     const schedules = window.allSchedules || [];
     if (schedules.length === 0) return;
-    renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
     updateResultsSummary();
 }
 
@@ -699,14 +700,14 @@ document.getElementById("back").addEventListener("click", function () {
     const schedules = window.allSchedules || [];
     if (schedules.length === 0) return;
     if (filteredIndexes && filteredIndexes.length > 0) {
-        const pos = filteredIndexes.indexOf(viewIndex);
+        const pos = filteredIndexes.indexOf(window.viewIndex);
         const prevPos = (pos <= 0 ? filteredIndexes.length - 1 : pos - 1);
-        viewIndex = filteredIndexes[prevPos];
+        window.viewIndex = filteredIndexes[prevPos];
     } else {
-        viewIndex--;
-        if (viewIndex < 0) { viewIndex = schedules.length - 1; }
+        window.viewIndex--;
+        if (window.viewIndex < 0) { window.viewIndex = schedules.length - 1; }
     }
-    renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
     updateResultsSummary();
 });
 
@@ -715,20 +716,20 @@ document.getElementById("next").addEventListener("click", function () {
     const schedules = window.allSchedules || [];
     if (schedules.length === 0) return;
     if (filteredIndexes && filteredIndexes.length > 0) {
-        const pos = filteredIndexes.indexOf(viewIndex);
+        const pos = filteredIndexes.indexOf(window.viewIndex);
         const nextPos = (pos >= filteredIndexes.length - 1 ? 0 : pos + 1);
-        viewIndex = filteredIndexes[nextPos];
+        window.viewIndex = filteredIndexes[nextPos];
     } else {
-        viewIndex++;
-        if (viewIndex >= schedules.length) { viewIndex = 0; }
+        window.viewIndex++;
+        if (window.viewIndex >= schedules.length) { window.viewIndex = 0; }
     }
-    renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
     updateResultsSummary();
 });
 
 // Save schedule button
 document.getElementById("save-schedule-button").addEventListener("click", function () {
-    localStorage.setItem('savedSchedule', JSON.stringify(allSchedules[viewIndex]));
+    localStorage.setItem('savedSchedule', JSON.stringify(allSchedules[window.viewIndex]));
     localStorage.setItem('savedColors', JSON.stringify(window.assignedColors || {}));
     showAlert("Schedule saved", "This DOES NOT register you in this course, you need to manually register in SIS!", "mySchedule.html", "View schedule");
 });
@@ -878,7 +879,7 @@ document.getElementById("processButton").addEventListener("click", function () {
             // document.getElementById("center-container").style.display = "none";
             // document.getElementById("schedule-details-container").style.display = "block";
             renderSchedule(allSchedules[0], "schedule-details-container", assignedColors);
-            viewIndex = 0;
+            window.viewIndex = 0;
             filteredIndexes = null;
             activeDayOff = null;
             updateResultsSummary();
