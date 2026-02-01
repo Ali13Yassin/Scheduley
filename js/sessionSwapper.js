@@ -290,14 +290,23 @@ export function renderGhosts(alternatives, container, customColors = {}) {
                 // Expand Stack on click (Direct call for robustness)
                 console.log('[Click-Swap] Expanding stack for:', primaryAlt.className);
                 createStack();
-            } else if (primaryAlt.isValid) {
-                // Dispatch Swap Command
-                console.log('[Click-Swap] Single option selected:', primaryAlt.className);
-                const swapEvent = new CustomEvent('swap-command', {
-                    detail: { targetClassName: primaryAlt.className },
-                    bubbles: true
-                });
-                container.dispatchEvent(swapEvent);
+            } else if (primaryAlt.isValid && window._swapContext && window._swapContext.active) {
+                // Direct Swap (Single Option)
+                const ctx = window._swapContext;
+                console.log('[Click-Swap] Executing direct swap for', ctx.class, '->', primaryAlt.className);
+
+                window.handleSwap(
+                    ctx.course,
+                    ctx.class,
+                    primaryAlt.className,
+                    ctx.container,
+                    ctx.customColors
+                );
+
+                // Trigger cleanup
+                if (ctx.container && ctx.container._swapCleanup) {
+                    ctx.container._swapCleanup();
+                }
             }
         });
 
@@ -338,23 +347,32 @@ export function renderGhosts(alternatives, container, customColors = {}) {
             const createStack = () => {
                 if (stackOverlay) return; // Already created
 
+                // PORTAL IMPLEMENTATION: Append to body to avoid overflow/z-index issues
                 stackOverlay = document.createElement('div');
                 stackOverlay.className = 'ghost-stack-overlay';
+                document.body.appendChild(stackOverlay);
 
-                // USER REQUEST: Inside the container itself.
-                ghostContainer.appendChild(stackOverlay);
+                // Calculate Position relative to Viewport
+                const rect = ghostContainer.getBoundingClientRect();
+                const scrollX = window.scrollX || window.pageXOffset;
+                const scrollY = window.scrollY || window.pageYOffset;
 
+                // BUFFER ZONE: Add padding to bridge the gap between ghost and stack
+                // This prevents `mouseleave` from triggering when moving mouse quickly
                 Object.assign(stackOverlay.style, {
                     position: 'absolute',
-                    top: '-5px', // Slight overlap to cover
-                    left: '-5px',
-                    width: 'calc(100% + 10px)', // Slightly wider to cover borders
+                    top: `${rect.top + scrollY - 10}px`, // -10px buffer
+                    left: `${rect.left + scrollX - 10}px`, // -10px buffer
+                    width: `${rect.width + 20}px`, // +20px total width
+                    padding: '10px', // Transparent padding acts as the bridge
                     height: 'auto',
-                    maxHeight: '300px',
-                    zIndex: '9999',
+                    maxHeight: '320px', // Increased for padding
+                    zIndex: '99999', // Higher than everything
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '4px',
+                    pointerEvents: 'auto',
+                    boxSizing: 'border-box' // Include padding in width
                 });
 
                 // Render ALL options as cards in the stack
@@ -374,7 +392,9 @@ export function renderGhosts(alternatives, container, customColors = {}) {
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         transition: 'transform 0.1s ease',
                         flexShrink: 0,
-                        position: 'relative' // For z-index context
+                        position: 'relative', // For z-index context
+                        pointerEvents: 'auto', // Double ensure
+                        userSelect: 'none' // Prevent text selection on rapid clicks
                     });
 
                     optionCard.innerHTML = `
@@ -391,57 +411,44 @@ export function renderGhosts(alternatives, container, customColors = {}) {
                         </div>
                     `;
 
-                    // Hover/Drag effects
-                    const highlight = () => { optionCard.style.transform = 'scale(1.02)'; optionCard.style.background = '#dcfce7'; optionCard.style.zIndex = '10'; };
-                    const unhighlight = () => { optionCard.style.transform = 'scale(1)'; optionCard.style.background = '#f0fdf4'; optionCard.style.zIndex = '1'; };
+                    // Hover
+                    optionCard.onmouseenter = () => { optionCard.style.background = '#dcfce7'; };
+                    optionCard.onmouseleave = () => { optionCard.style.background = '#f0fdf4'; };
 
-                    optionCard.addEventListener('mouseenter', highlight);
-                    optionCard.addEventListener('mouseleave', unhighlight);
-
-                    // Click Event (Swap Mode)
+                    // Click Event (Swap Mode) - Direct & Robust
                     optionCard.addEventListener('click', (e) => {
+                        e.preventDefault(); // Prevent ghost click passthrough
                         e.stopPropagation();
-                        console.log('[Stack-Swap] Clicked option:', alt.className, 'Valid:', alt.isValid);
+                        console.log('[Stack-Swap] Clicked option (Portal):', alt.className);
 
-                        if (alt.isValid) {
-                            const swapEvent = new CustomEvent('swap-command', {
-                                detail: { targetClassName: alt.className },
-                                bubbles: true
-                            });
+                        if (alt.isValid && window._swapContext && window._swapContext.active) {
+                            const ctx = window._swapContext;
+                            console.log('[Stack-Swap] Executing direct swap for', ctx.class, '->', alt.className);
 
-                            // Try normal dispatch
-                            optionCard.dispatchEvent(swapEvent);
+                            window.handleSwap(
+                                ctx.course,
+                                ctx.class,
+                                alt.className,
+                                ctx.container,
+                                ctx.customColors
+                            );
 
-                            // FALLBACK: Manually find the main container and dispatch there too
-                            // because sometimes portals/overlays break bubbling chains
-                            const mainContainer = document.getElementById('schedule-details-container') || document.getElementById('schedule-container');
-                            if (mainContainer) {
-                                console.log('[Stack-Swap] Dispatching direct to cleanup container');
-                                mainContainer.dispatchEvent(swapEvent);
+                            if (ctx.container && ctx.container._swapCleanup) {
+                                ctx.container._swapCleanup();
                             }
+                            removeStack();
                         }
                     });
 
-                    // Drag Events for Dropping
-                    optionCard.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = 'move';
-                        highlight();
-                    });
-                    optionCard.addEventListener('dragleave', unhighlight);
-
+                    // Drop Handler (DnD)
+                    optionCard.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
                     optionCard.addEventListener('drop', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         if (window._dragContext && window._dragContext.active) {
                             const ctx = window._dragContext;
-
-                            // Dispatch to main container to trigger swap
-                            const dropEvent = new CustomEvent('manual-drop', {
-                                detail: { className: alt.className }
-                            });
+                            const dropEvent = new CustomEvent('manual-drop', { detail: { className: alt.className } });
                             if (ctx.container) ctx.container.dispatchEvent(dropEvent);
-
                             removeStack();
                         }
                     });
@@ -452,8 +459,6 @@ export function renderGhosts(alternatives, container, customColors = {}) {
                 // Interaction Logic
                 stackOverlay.addEventListener('mouseleave', scheduleRemoval);
                 stackOverlay.addEventListener('mouseenter', cancelRemoval);
-                stackOverlay.addEventListener('dragenter', cancelRemoval);
-                stackOverlay.addEventListener('dragover', (e) => { e.preventDefault(); cancelRemoval(); });
             };
 
             const removeStack = () => {
@@ -465,7 +470,7 @@ export function renderGhosts(alternatives, container, customColors = {}) {
 
             const scheduleRemoval = () => {
                 clearTimeout(hideTimeout);
-                hideTimeout = setTimeout(removeStack, 100);
+                hideTimeout = setTimeout(removeStack, 150); // Increased delay
             };
 
             const cancelRemoval = () => {
@@ -478,28 +483,39 @@ export function renderGhosts(alternatives, container, customColors = {}) {
                 e.preventDefault();
                 createStack();
             });
+
+            // Auto-Expand if in Manual Swap Mode (Robust Timing)
+            if (window._swapContext && window._swapContext.active) {
+                // Ensure layout is stable before creating rect-based portal
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        if (window._swapContext && window._swapContext.active) {
+                            createStack();
+                        }
+                    });
+                });
+            }
         }
 
-        // --- Hover effect for primary card (single option) ---
-        if (!hasMultiple) {
-            primaryCard.addEventListener('mouseenter', () => {
-                if (primaryAlt.isValid) {
-                    primaryCard.style.transform = 'scale(1.02)';
-                    primaryCard.style.boxShadow = '0 6px 16px rgba(34, 197, 94, 0.2)';
-                }
-            });
-            primaryCard.addEventListener('mouseleave', () => {
-                primaryCard.style.transform = 'scale(1)';
-                primaryCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-            });
-            // Single card also needs drag events for hover effect
-            primaryCard.addEventListener('dragenter', () => {
-                if (primaryAlt.isValid) primaryCard.style.transform = 'scale(1.02)';
-            });
-            primaryCard.addEventListener('dragleave', () => {
-                primaryCard.style.transform = 'scale(1)';
-            });
-        }
+        // --- Hover effect for primary card (ALL options) ---
+        // Removed !hasMultiple check so ALL cards get hover feedback
+        primaryCard.addEventListener('mouseenter', () => {
+            if (primaryAlt.isValid) {
+                primaryCard.style.transform = 'scale(1.02)';
+                primaryCard.style.boxShadow = '0 6px 16px rgba(34, 197, 94, 0.2)';
+            }
+        });
+        primaryCard.addEventListener('mouseleave', () => {
+            primaryCard.style.transform = 'scale(1)';
+            primaryCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+        });
+        // Single card also needs drag events for hover effect
+        primaryCard.addEventListener('dragenter', () => {
+            if (primaryAlt.isValid) primaryCard.style.transform = 'scale(1.02)';
+        });
+        primaryCard.addEventListener('dragleave', () => {
+            primaryCard.style.transform = 'scale(1)';
+        });
 
         dayCol.appendChild(ghostContainer);
     });
@@ -549,25 +565,15 @@ export function startSwapMode(session, container, customColors) {
         return;
     }
 
-    // 2. Set up Swap Listener (One-time)
-    const swapHandler = (e) => {
-        const targetClassName = e.detail.targetClassName;
-        console.log('[SwapMode] Swap triggered:', session.class, '->', targetClassName);
-
-        // Execute Swap
-        if (window.handleSwap) {
-            window.handleSwap(
-                session.course,
-                session.class,
-                targetClassName,
-                container,
-                customColors
-            );
-        }
-
-        cleanup();
+    // 2. Set up Global Swap Context
+    window._swapContext = {
+        course: session.course,
+        class: session.class,
+        container: container,
+        customColors: customColors,
+        active: true
     };
-    container.addEventListener('swap-command', swapHandler, { once: true });
+    console.log('[SwapMode] Context set:', window._swapContext);
 
     // 3. Render Ghosts
     renderGhosts(alternatives, container, customColors);
@@ -583,11 +589,14 @@ export function startSwapMode(session, container, customColors) {
 
     // Cleanup Function
     const cleanup = () => {
-        container.removeEventListener('swap-command', swapHandler);
+        window._swapContext = null;
         clearGhosts(container);
         overlay.remove();
         delete container._swapOverlay;
     };
+
+    // Expose cleanup so ghost clicks can trigger it
+    container._swapCleanup = cleanup;
 
     overlay.addEventListener('click', (e) => {
         e.stopPropagation();
