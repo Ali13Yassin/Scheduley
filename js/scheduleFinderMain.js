@@ -165,26 +165,24 @@ function toggleLock(course, className) {
 
     console.log('[toggleLock] All locked groups:', Array.from(window.lockedGroups));
 
-    // Fix 4: For custom/swapped schedules, DON'T jump to a different schedule on unlock
-    // Only recompute filters for original (generated) schedules
+    // Fix 4: For custom/swapped schedules, we MUST recompute filters so navigation knows about the new lock.
+    // The "Sticky View" logic inside recomputeFilteredIndexes will handle preserving the current viewIndex.
     const generatedCount = window.generatedScheduleCount || window.allSchedules.length;
     const isCustomSchedule = window.viewIndex >= generatedCount;
-    console.log('[toggleLock] isCustomSchedule?', isCustomSchedule, '| viewIndex:', window.viewIndex, '| generatedCount:', generatedCount);
+    // console.log('[toggleLock] isCustomSchedule?', isCustomSchedule, '| viewIndex:', window.viewIndex, '| generatedCount:', generatedCount);
 
-    if (!isCustomSchedule) {
-        // Original schedule - apply normal filter logic
-        console.log('[toggleLock] Original schedule - recomputing filters');
-        recomputeFilteredIndexes();
-    } else {
-        // Custom schedule - just update visuals, don't jump
-        console.log('[toggleLock] Custom schedule - preserving viewIndex:', window.viewIndex);
+    // ALWAYS recompute filters so "Next" button works correctly with new lock
+    recomputeFilteredIndexes();
+
+    if (isCustomSchedule) {
+        console.log('[toggleLock] Custom schedule - sticky view active');
     }
 
     updateResultsSummary();
     // Re-render to update lock icons
     const schedules = window.allSchedules || [];
     if (schedules.length > 0 && schedules[window.viewIndex]) {
-        console.log('[toggleLock] Re-rendering schedule at viewIndex:', window.viewIndex);
+        // console.log('[toggleLock] Re-rendering schedule at viewIndex:', window.viewIndex);
         renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
     }
     console.log('[toggleLock] ===== END =====');
