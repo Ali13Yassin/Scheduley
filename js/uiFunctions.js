@@ -160,9 +160,6 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
     const DAY_START = 8;
     const PX_PER_HOUR = 65;  // Increased for more spacing
 
-    // ===== DEBUG FLAGS =====
-    // const DEBUG_DISABLE_DRAG = true; // REMOVED: Uses global flag
-    // const DEBUG_LOCK_VERBOSE = true; // REMOVED: Uses global flag
     // Parse time "HH:MM" to decimal
     const parseTime = (t) => {
         if (!t) return DAY_START;
