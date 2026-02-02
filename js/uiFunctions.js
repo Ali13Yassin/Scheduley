@@ -292,8 +292,11 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
             : '';
 
         // Locked indicator (small icon always visible if locked)
+        // Locked indicator (Watermark style in center)
         const lockedIndicator = sessionLocked
-            ? `<div style="position:absolute; top:6px; right:30px; color:#FFD700; opacity:0.9; z-index:100;">${svgs.lock}</div>`
+            ? `<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#FFD700; opacity:0.25; pointer-events:none; z-index:0;">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+               </div>`
             : '';
 
         const paddingRight = enableLock ? 'padding-right:26px;' : '';
@@ -459,7 +462,7 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
             block.style.zIndex = '1';
 
             const btn = block.querySelector('.menu-btn');
-            if (btn) btn.style.opacity = '0';
+            if (btn) btn.style.opacity = '0.5';
         });
 
         // ===================================
@@ -614,6 +617,7 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
                     <div class="tooltip-header">${courseName}</div>
                     <div class="tooltip-badge" style="background:${badgeBg}">${session.class || ''}</div>
                     <div class="tooltip-details">
+                        <div><span class="label">Course</span>${courseKey}</div>
                         <div><span class="label">Time</span>${fmtTime(session.start)} – ${fmtTime(session.end)}</div>
                         <div><span class="label">Day</span>${session.day}</div>
                         <div><span class="label">Lecturer</span>${lecturer}</div>
