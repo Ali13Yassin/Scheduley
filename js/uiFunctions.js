@@ -133,8 +133,11 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
     // Options: enable lock/drag if explicitly set OR if container has day-columns (is a schedule view)
     const hasDayColumns = !!container.querySelector('.day-column');
     const isMainScheduleView = containerId === 'schedule-details-container';
-    const enableLock = options.enableLock ?? (isMainScheduleView || hasDayColumns);
-    const enableDrag = options.enableDrag ?? (isMainScheduleView || hasDayColumns);
+
+    // RESTRICTION: Only enable Lock/Drag on the MAIN Schedule Finder view
+    // This prevents these features from appearing in "Edit" or "My Schedule" views
+    const enableLock = options.enableLock ?? isMainScheduleView;
+    const enableDrag = options.enableDrag ?? isMainScheduleView;
 
     // Clear previous blocks
     container.querySelectorAll('.class-block').forEach(b => b.remove());
@@ -544,13 +547,11 @@ export function renderSchedule(schedule, containerId, customColors = {}, options
                                 evt.preventDefault();
                                 evt.stopPropagation();
 
-                                // Fix 5: If this ghost has a popover (multiple options), 
-                                // don't swap directly - user must select from expanded popover
+                                // User wants to drop on the stack placeholder -> Swap to the primary option
+                                // (Standard UX: Dropping on a "pile" takes the top item)
                                 if (ghost.dataset.hasPopover === 'true') {
-                                    console.log('[DnD] Drop on multi-option ghost - popover should be showing');
-                                    // The popover is already expanded via dragenter/dragover
-                                    // User needs to drop on a specific option inside the popover
-                                    return; // Don't swap on the primary card
+                                    console.log('[DnD] Drop on multi-option ghost -> Taking primary option');
+                                    // Allow fall-through to swap logic
                                 }
 
                                 console.log('[DnD] Drop on ghost:', ghost.dataset.className);
