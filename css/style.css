@@ -248,30 +248,51 @@ button:focus {
 
 #results-summary {
     background: white;
-    padding: 16px 20px;
-    border-radius: 14px;
+    padding: 10px 16px;
+    /* Reduced padding */
+    border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    /* Reduced gap */
 }
 
 #results-summary h3,
 #total-schedules {
     margin: 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: #1F2937;
+    font-size: 15px;
+    font-weight: 600;
+    color: #374151;
+    /* Softer gray */
 }
 
 #current-index-label {
-    font-size: 14px;
+    font-size: 13px;
     color: #6B7280;
     font-weight: 500;
 }
+
+/* Clear buttons text */
+#clear-locks-btn,
+#clear-dayoff-filter {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6B7280;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.2s;
+}
+
+#clear-locks-btn:hover,
+#clear-dayoff-filter:hover {
+    color: #CE3602;
+}
+
 
 /* Day off buttons - compact */
 .dayoff-btn {
