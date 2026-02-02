@@ -206,18 +206,35 @@ button:focus {
 #schedule-stage-back {
     background-color: white;
     color: #CE3602;
-    border: 2px solid #CE3602;
+    border: 2px solid #E5E7EB;
+    /* Default gray border */
     padding: 8px 16px;
     font-size: 13px;
     border-radius: 8px;
 }
 
+#back,
+#next {
+    border: 2px solid #E5E7EB;
+    /* Force gray border initially */
+}
+
+/* Bigger SVG for nav buttons */
+#back svg,
+#next svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Hover states */
 .btn-nav:hover,
 #back:hover,
 #next:hover,
 #schedule-stage-back:hover {
-    background-color: #CE3602;
-    color: white;
+    background-color: #FFF5F2;
+    /* Light orange bg */
+    border-color: #CE3602;
+    color: #CE3602;
     transform: translateY(0);
 }
 
@@ -311,16 +328,25 @@ button:focus {
 #clear-dayoff-filter {
     font-size: 13px;
     font-weight: 600;
-    color: #6B7280;
+    color: #9CA3AF;
+    /* Light gray default */
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    transition: color 0.2s;
+    transition: all 0.2s;
+    background: transparent;
+    border: 1px solid transparent;
+    /* Prevent shrinking */
+    padding: 6px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+    /* Prevent shrinking */
 }
 
 #clear-locks-btn:hover,
 #clear-dayoff-filter:hover {
     color: #CE3602;
+    background-color: #FFF5F2;
 }
 
 
@@ -334,6 +360,8 @@ button:focus {
     border: 1px solid #E5E7EB;
     color: #4B5563;
     transition: all 0.2s ease;
+    position: relative;
+    /* For badge */
 }
 
 .dayoff-btn:hover {
@@ -348,6 +376,39 @@ button:focus {
     background: #CE3602;
     border-color: #CE3602;
     color: white;
+}
+
+/* Badge for counts */
+.badge-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background-color: #CE3602;
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: 1px solid white;
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+/* If button is active/hovered, maybe style badge differently? */
+.dayoff-btn.active .badge-count {
+    background-color: white;
+    color: #CE3602;
+    border-color: #CE3602;
+}
+
+.dayoff-btn.hidden {
+    display: none;
 }
 
 .dayoff-btn:disabled {

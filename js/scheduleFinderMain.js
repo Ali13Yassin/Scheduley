@@ -130,7 +130,7 @@ function getSelectedFilters() {
 // let viewIndex = 0; // REMOVED: Use window.viewIndex as single source of truth
 window.viewIndex = window.viewIndex || 0; // Ensure initialized
 let filteredIndexes = null; // array of indexes into allSchedules matching active filter
-let activeDayOff = null; // e.g., 'MON' or null
+window.activeDaysOff = new Set(); // Multi-select Support
 
 // ===================================
 // LOCK SLOT FEATURE
@@ -155,45 +155,27 @@ function getLockKey(course, sessionType, className) {
 // Toggle lock state for a session group
 function toggleLock(course, className) {
     console.log('[toggleLock] ===== START =====');
-    console.log('[toggleLock] Course:', course, '| ClassName:', className);
-
     const sessionType = getSessionType(className);
-    console.log('[toggleLock] Derived sessionType:', sessionType);
-
     const key = getLockKey(course, sessionType, className);
-    console.log('[toggleLock] Lock key:', key);
-
     const wasLocked = window.lockedGroups.has(key);
-    console.log('[toggleLock] Was locked?', wasLocked);
 
     if (wasLocked) {
         window.lockedGroups.delete(key);
-        console.log('[toggleLock] UNLOCKED -', key);
     } else {
         window.lockedGroups.add(key);
-        console.log('[toggleLock] LOCKED +', key);
     }
 
-    console.log('[toggleLock] All locked groups:', Array.from(window.lockedGroups));
-
     // Fix 4: For custom/swapped schedules, we MUST recompute filters so navigation knows about the new lock.
-    // The "Sticky View" logic inside recomputeFilteredIndexes will handle preserving the current viewIndex.
     const generatedCount = window.generatedScheduleCount || window.allSchedules.length;
     const isCustomSchedule = window.viewIndex >= generatedCount;
-    // console.log('[toggleLock] isCustomSchedule?', isCustomSchedule, '| viewIndex:', window.viewIndex, '| generatedCount:', generatedCount);
 
     // ALWAYS recompute filters so "Next" button works correctly with new lock
     recomputeFilteredIndexes();
-
-    if (isCustomSchedule) {
-        console.log('[toggleLock] Custom schedule - sticky view active');
-    }
 
     updateResultsSummary();
     // Re-render to update lock icons
     const schedules = window.allSchedules || [];
     if (schedules.length > 0 && schedules[window.viewIndex]) {
-        // console.log('[toggleLock] Re-rendering schedule at viewIndex:', window.viewIndex);
         renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
     }
     console.log('[toggleLock] ===== END =====');
@@ -203,9 +185,7 @@ function toggleLock(course, className) {
 function isLocked(course, className) {
     const sessionType = getSessionType(className);
     const key = getLockKey(course, sessionType, className);
-    const locked = window.lockedGroups.has(key);
-    console.log('[isLocked] Course:', course, '| ClassName:', className, '| Locked?', locked);
-    return locked;
+    return window.lockedGroups.has(key);
 }
 
 // Clear all locks
@@ -236,7 +216,7 @@ function scheduleMatchesLocks(schedule, lockedGroups) {
     return true;
 }
 
-// Recompute filtered indexes: DayOff ∩ Locks
+// Recompute filtered indexes: DaysOff Intersection ∩ Locks
 function recomputeFilteredIndexes() {
     const schedules = window.allSchedules || [];
     if (schedules.length === 0) {
@@ -249,71 +229,43 @@ function recomputeFilteredIndexes() {
         window.viewIndex = parseInt(window.viewIndex, 10) || 0;
     }
 
-    console.log('[recompute] Starting. Current viewIndex:', window.viewIndex, 'Locked:', Array.from(window.lockedGroups));
-
     // Start with all indexes
     let indexes = schedules.map((_, i) => i);
 
-    // Apply DayOff filter
-    if (activeDayOff) {
+    // Apply DayOff filter (Multi-select AND Logic)
+    if (window.activeDaysOff.size > 0) {
         const groups = groupSchedulesByDayOff(schedules);
-        const dayMatches = groups[activeDayOff] || [];
-        indexes = indexes.filter(i => dayMatches.includes(i));
 
-        // Debug current index against DayOff
-        if (!dayMatches.includes(window.viewIndex)) {
-            console.warn('[recompute] Current schedule violates DayOff filter:', activeDayOff);
+        // Schedule must match ALL selected days
+        for (const day of window.activeDaysOff) {
+            const dayMatches = groups[day] || [];
+            indexes = indexes.filter(i => dayMatches.includes(i));
         }
     }
 
     // Apply Lock filter
     if (window.lockedGroups.size > 0) {
         indexes = indexes.filter(i => {
-            const matches = scheduleMatchesLocks(schedules[i], window.lockedGroups);
-            if (i === window.viewIndex && !matches) {
-                console.warn('[recompute] Current schedule fails lock check!');
-                // Log which lock failed
-                for (const lockKey of window.lockedGroups) {
-                    const parts = lockKey.split('|||');
-                    if (parts.length === 3) {
-                        const [c, st, cls] = parts;
-                        const types = window.scheduleApp.getSessionType(cls);
-                        const found = schedules[i].some(s => s.course === c && s.class === cls);
-                        if (!found) console.warn(' - Missing locked session:', cls);
-                    }
-                }
-            }
-            return matches;
+            return scheduleMatchesLocks(schedules[i], window.lockedGroups);
         });
     }
 
     // Set result
     filteredIndexes = indexes.length > 0 ? indexes : null;
-    console.log('[recompute] Filtered count:', filteredIndexes ? filteredIndexes.length : 0);
 
     // STICKY VIEW IMPLEMENTATION:
-    // Only force sticky view if the schedule is CUSTOM (added via swap)
-    // OR if the user explicitly locked something on it (implied by viewIndex being high).
-    // Original schedules (index < generated count) should respect filters.
     const isCustomSchedule = window.viewIndex >= (window.generatedScheduleCount || window.allSchedules.length);
-
-    // Also sticky if we locked something on it? 
-    // Actually, locking a session on an original schedule DOES NOT create a new schedule index.
-    // So if I lock on Schedule 0, viewIndex remains 0.
-    // If I then apply "Day Off", Schedule 0 should disappear.
-    // So ONLY custom schedules should be sticky.
 
     if (isCustomSchedule && window.viewIndex >= 0 && schedules[window.viewIndex]) {
         if (!filteredIndexes) filteredIndexes = [];
         if (!filteredIndexes.includes(window.viewIndex)) {
-            console.log('[recompute] Forcing custom/swapped viewIndex', window.viewIndex, 'into filtered list (Sticky View)');
+            // Force custom index into filtered list
             filteredIndexes.push(window.viewIndex);
         }
     }
 
-    // Adjust viewIndex if current not in filtered (Should not happen with Sticky View)
+    // Adjust viewIndex if current not in filtered (Should not happen with Sticky View if custom)
     if (filteredIndexes && !filteredIndexes.includes(window.viewIndex)) {
-        console.warn('[recompute] Current viewIndex', window.viewIndex, 'not in filtered list. Jumping to', filteredIndexes[0]);
         window.viewIndex = filteredIndexes[0];
     }
 }
@@ -368,29 +320,105 @@ function updateResultsSummary() {
     if (idxEl) idxEl.textContent = currentTotal > 0 ? `Viewing ${displayIdx} / ${currentTotal}` : '–';
 
     if (filterEl) {
-        filterEl.textContent = activeDayOff ? `Filter: ${activeDayOff} off` : '';
+        const days = Array.from(window.activeDaysOff).sort();
+        filterEl.textContent = days.length > 0 ? `Filter: ${days.join(', ')} off` : '';
     }
 
-    // update counts on buttons
-    const groups = groupSchedulesByDayOff(window.allSchedules || []);
-    Object.entries(buttons).forEach(([day, btn]) => {
+    // Update counts and visibility on buttons (Dynamic Facets)
+    const schedules = window.allSchedules || [];
+    const groups = groupSchedulesByDayOff(schedules);
+    const dayNames = Object.keys(buttons);
+
+    // Helper: Compute potential count if a day filter were added to current context
+    const getPotentialCount = (dayToAdd) => {
+        // Base: All schedules
+        let candidates = schedules.map((_, i) => i);
+
+        // Apply existing active filters (EXCLUDING the one we are testing if it's already active)
+        // Wait, normally facets show results if we *keep* current selection.
+        // If I have Mon selected, and I look at Mon, it shows current count.
+        // If I look at Sun, it shows count if I add Sun (Mon AND Sun).
+
+        // Multi-select AND logic:
+        const hypotheticalSet = new Set(window.activeDaysOff);
+        hypotheticalSet.add(dayToAdd); // Ensure it's in the set for test
+
+        // 1. Filter by Days
+        for (const d of hypotheticalSet) {
+            const dayMatches = groups[d] || [];
+            candidates = candidates.filter(i => dayMatches.includes(i));
+        }
+
+        // 2. Filter by Locks (Locks are always active)
+        if (window.lockedGroups.size > 0) {
+            candidates = candidates.filter(i => {
+                return scheduleMatchesLocks(schedules[i], window.lockedGroups);
+            });
+        }
+
+        return candidates.length;
+    };
+
+    dayNames.forEach(day => {
+        const btn = buttons[day];
         if (!btn) return;
-        const count = groups[day]?.length || 0;
+
+        const count = getPotentialCount(day);
+        const isActive = window.activeDaysOff.has(day);
+
+        // Refined Label: Just "Mon", "Tue" etc.
         const label = day.charAt(0) + day.slice(1).toLowerCase();
-        btn.textContent = `${label} off (${count})`;
-        btn.disabled = count === 0;
-        btn.classList.toggle('active', activeDayOff === day);
+
+        // Badge Logic
+        // Remove existing badge if any
+        let badge = btn.querySelector('.badge-count');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'badge-count';
+            btn.appendChild(badge);
+        }
+        badge.textContent = count;
+
+        // Button Text (Clean)
+        // Use first child text node to avoid overwriting badge
+        // Store badge, clear content, re-append text + badge
+        const badgeClone = badge.cloneNode(true);
+        btn.textContent = `${label} off `;
+        btn.appendChild(badgeClone);
+
+        btn.disabled = count === 0 && !isActive; // Disable if 0 results (unless already active)
+        btn.classList.toggle('active', isActive);
+
+        // Visibility: Hide if count is 0 and NOT active
+        if (count === 0 && !isActive) {
+            btn.classList.add('hidden');
+        } else {
+            btn.classList.remove('hidden');
+        }
     });
 }
 
 function applyDayOffFilter(day) {
-    activeDayOff = day;
+    if (!day) {
+        // Clear all
+        window.activeDaysOff.clear();
+    } else {
+        // Toggle logic
+        if (window.activeDaysOff.has(day)) {
+            window.activeDaysOff.delete(day);
+        } else {
+            window.activeDaysOff.add(day);
+        }
+    }
+
     // Use centralized filter computation (includes lock intersection)
     recomputeFilteredIndexes();
+
     // Render based on current filter
     const schedules = window.allSchedules || [];
-    if (schedules.length === 0) return;
-    renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
+    if (schedules.length > 0 && schedules[window.viewIndex]) {
+        renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
+    }
     updateResultsSummary();
 }
 
@@ -890,7 +918,7 @@ document.getElementById("processButton").addEventListener("click", function () {
             renderSchedule(allSchedules[0], "schedule-details-container", assignedColors);
             window.viewIndex = 0;
             filteredIndexes = null;
-            activeDayOff = null;
+            if (window.activeDaysOff) window.activeDaysOff.clear();
             updateResultsSummary();
             showStage('schedule-details-container');
             hideLoadingOverlay();
