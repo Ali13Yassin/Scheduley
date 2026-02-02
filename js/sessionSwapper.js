@@ -574,7 +574,13 @@ export function startSwapMode(session, container, customColors) {
     console.log('[SwapMode] Started for', session.class, 'Found:', alternatives.length);
 
     if (alternatives.length === 0) {
-        alert("No other available times for this class.");
+        import('./alert.js').then(({ showAlert }) => {
+            showAlert("No Options Found", "No other available times were found for this class.");
+        }).catch(err => {
+            console.error("Failed to load alert module", err);
+            // Fallback
+            alert("No other available times for this class.");
+        });
         return;
     }
 

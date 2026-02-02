@@ -752,9 +752,29 @@ input[type="radio"]:checked+.filter-chip {
 }
 
 .errorMessage p {
-    margin: 0 0 20px;
+    margin: 0 0 24px;
     color: #4B5563;
     font-size: 14px;
+}
+
+#close-alert {
+    background-color: #CE3602;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(206, 54, 2, 0.3);
+    transition: all 0.2s ease;
+}
+
+#close-alert:hover {
+    background-color: #E63E02;
+    /* Slightly brighter */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(206, 54, 2, 0.4);
 }
 
 #processOverlay {
