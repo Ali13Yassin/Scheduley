@@ -440,8 +440,21 @@ export function renderGhosts(alternatives, container, customColors = {}) {
                         }
                     });
 
-                    // Drop Handler (DnD)
-                    optionCard.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+                    // Drop Handler (DnD) with Visual Feedback
+                    optionCard.addEventListener('dragenter', (e) => {
+                        e.preventDefault();
+                        if (alt.isValid) optionCard.style.background = '#dcfce7';
+                    });
+                    optionCard.addEventListener('dragleave', (e) => {
+                        // Only remove highlight if leaving the card entirely (not entering a child)
+                        if (optionCard.contains(e.relatedTarget)) return;
+                        optionCard.style.background = '#f0fdf4';
+                    });
+                    optionCard.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        if (alt.isValid) optionCard.style.background = '#dcfce7';
+                    });
                     optionCard.addEventListener('drop', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
