@@ -43,19 +43,23 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    flex: 1;
+    /* Ensure equal width for valid percentage alignment */
 }
 
 .step-circle {
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    /* Prevent circle from squishing */
     border-radius: 50%;
     background-color: #E5E7EB;
     color: #6B7280;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    font-size: 13px;
+    font-weight: 700;
+    font-size: 11px;
     transition: all 0.3s ease;
     border: 2px solid transparent;
 }
@@ -67,7 +71,7 @@ body {
 }
 
 .step-item.completed .step-circle {
-    background-color: #22C55E;
+    background-color: #CE3602;
     color: white;
 }
 
@@ -85,7 +89,7 @@ body {
 }
 
 .step-item.completed .step-label {
-    color: #22C55E;
+    color: #CE3602;
 }
 
 /* ===================================

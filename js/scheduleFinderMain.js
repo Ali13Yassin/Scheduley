@@ -62,11 +62,22 @@ function updateStepProgress(stageId) {
 
     stepItems.forEach((item, index) => {
         const stepNum = index + 1;
+        const circle = item.querySelector('.step-circle');
         item.classList.remove('active', 'completed');
+
         if (stepNum < currentStep) {
             item.classList.add('completed');
+            // Show checkmark
+            circle.innerHTML = `
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                </svg>
+            `;
         } else if (stepNum === currentStep) {
             item.classList.add('active');
+            circle.innerText = stepNum;
+        } else {
+            circle.innerText = stepNum;
         }
     });
 
