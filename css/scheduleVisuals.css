@@ -214,13 +214,7 @@
    SCHEDULE RESULTS BUTTONS CONTAINER
    =================================== */
 
-.schedule-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 20px;
-    gap: 16px;
-}
+
 
 /* ===================================
    SAVE SCHEDULE BUTTON - Animated Icon
@@ -436,31 +430,7 @@
    SCHEDULE ACTIONS CONTAINER (Grid Layout)
    =================================== */
 
-.schedule-actions {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    margin-top: 24px;
-    padding-top: 16px;
-    border-top: 1px solid #F3F4F6;
-    gap: 16px;
-}
 
-/* Align columns */
-.schedule-actions> :first-child {
-    justify-self: start;
-    align-self: center;
-}
-
-.schedule-actions> :nth-child(2) {
-    justify-self: center;
-    align-self: center;
-}
-
-.schedule-actions> :last-child {
-    justify-self: end;
-    align-self: center;
-}
 
 
 /* ===================================
