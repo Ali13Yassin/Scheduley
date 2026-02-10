@@ -1,7 +1,10 @@
 // ===================================
 // SESSION SWAPPER MODULE
 // Drag-Drop Swap Functionality
+// VERSION: IN-PLACE-STACK-V2
 // ===================================
+
+console.log("%c SessionSwapper Loaded: IN-PLACE-STACK-V2 ", "background: #222; color: #bada55");
 
 /**
  * Get session type from class name
@@ -190,63 +193,344 @@ export function renderGhosts(alternatives, container, customColors = {}) {
         return h + (m || 0) / 60;
     };
 
+    // SVG location icon for consistent styling
+    const locationIcon = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0; opacity:0.7;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+
+    // 1. Collect all ghost entries
+    const ghostEntries = [];
     alternatives.forEach((alt, index) => {
         alt.group.forEach(session => {
-            const dayCol = container.querySelector(`.day-column[data-day="${session.day}"]`);
-            if (!dayCol) return;
-
-            const start = parseTime(session.start);
-            const end = parseTime(session.end);
-            const duration = Math.max(end - start, 0.5);
-            const top = (start - DAY_START) * PX_PER_HOUR;
-            const height = Math.max(duration * PX_PER_HOUR, 35);
-
-            const ghost = document.createElement('div');
-            ghost.className = `drop-zone-ghost ${alt.isValid ? 'valid' : 'invalid'}`;
-            ghost.dataset.altIndex = index;
-            ghost.dataset.className = alt.className;
-            ghost.dataset.course = session.course;
-
-            Object.assign(ghost.style, {
-                position: 'absolute',
-                left: '3px',
-                right: '3px',
-                top: `${top}px`,
-                height: `${height}px`,
-                borderRadius: '6px',
-                border: alt.isValid ? '2px dashed #22C55E' : '2px dashed #EF4444',
-                background: alt.isValid
-                    ? 'repeating-linear-gradient(45deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.1) 4px, rgba(34, 197, 94, 0.05) 4px, rgba(34, 197, 94, 0.05) 8px)'
-                    : 'repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.1) 4px, rgba(239, 68, 68, 0.05) 4px, rgba(239, 68, 68, 0.05) 8px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '11px',
-                fontWeight: '600',
-                color: alt.isValid ? '#16A34A' : '#DC2626',
-                zIndex: '50',
-                cursor: alt.isValid ? 'pointer' : 'not-allowed',
-                transition: 'transform 0.15s, box-shadow 0.15s'
+            ghostEntries.push({
+                alt,
+                index,
+                session,
+                key: `${session.day}-${session.start}-${session.end}`
             });
-
-            ghost.innerHTML = alt.isValid
-                ? `<span>📍 ${alt.className}</span>`
-                : `<span>⚠️ Conflict</span>`;
-
-            // Hover effect
-            ghost.addEventListener('mouseenter', () => {
-                if (alt.isValid) {
-                    ghost.style.transform = 'scale(1.02)';
-                    ghost.style.boxShadow = '0 4px 12px rgba(34, 197, 94, 0.3)';
-                }
-            });
-            ghost.addEventListener('mouseleave', () => {
-                ghost.style.transform = 'scale(1)';
-                ghost.style.boxShadow = 'none';
-            });
-
-            dayCol.appendChild(ghost);
         });
+    });
+
+    // 2. Group by time slot
+    const slotGroups = {};
+    ghostEntries.forEach(entry => {
+        if (!slotGroups[entry.key]) slotGroups[entry.key] = [];
+        slotGroups[entry.key].push(entry);
+    });
+
+    // 3. Render: ONE card per slot, with "+N" badge if multiple options
+    Object.values(slotGroups).forEach(group => {
+        const firstEntry = group[0];
+        const { session } = firstEntry;
+        const dayCol = container.querySelector(`.day-column[data-day="${session.day}"]`);
+        if (!dayCol) return;
+
+        const start = parseTime(session.start);
+        const end = parseTime(session.end);
+        const duration = Math.max(end - start, 0.5);
+        const top = (start - DAY_START) * PX_PER_HOUR;
+        const height = Math.max(duration * PX_PER_HOUR, 35);
+
+        const hasMultiple = group.length > 1;
+        const validOptions = group.filter(e => e.alt.isValid);
+        const invalidCount = group.length - validOptions.length;
+
+        // Create main ghost container
+        const ghostContainer = document.createElement('div');
+        ghostContainer.className = 'drop-zone-ghost-container';
+
+        Object.assign(ghostContainer.style, {
+            position: 'absolute',
+            left: '3px',
+            right: '3px',
+            top: `${top}px`,
+            minHeight: `${height}px`,
+            zIndex: '200' // High z-index to appear above class blocks
+        });
+
+        // Primary card (first valid option or first option)
+        const primaryEntry = validOptions.length > 0 ? validOptions[0] : group[0];
+        const primaryAlt = primaryEntry.alt;
+        const primarySession = primaryEntry.session;
+
+        const primaryCard = document.createElement('div');
+        primaryCard.className = `drop-zone-ghost ${primaryAlt.isValid ? 'valid' : 'invalid'}`;
+        primaryCard.dataset.altIndex = primaryEntry.index;
+        primaryCard.dataset.className = primaryAlt.className;
+        primaryCard.dataset.course = primarySession.course;
+
+        // Fix 5: Mark if this has a popover (prevents direct drop on primary)
+        if (hasMultiple) {
+            primaryCard.dataset.hasPopover = 'true';
+        }
+
+        Object.assign(primaryCard.style, {
+            position: 'relative',
+            width: '100%',
+            height: `${height}px`,
+            borderRadius: '8px',
+            border: primaryAlt.isValid ? '2px dashed #22C55E' : '2px dashed #EF4444',
+            background: primaryAlt.isValid
+                ? 'rgba(236, 253, 245, 0.92)' // Light green tint, less white
+                : 'rgba(254, 242, 242, 0.92)', // Light red tint
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            padding: '8px 12px',
+            boxSizing: 'border-box',
+            cursor: primaryAlt.isValid ? 'pointer' : 'not-allowed',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            pointerEvents: 'auto' // Fix: Allow interaction
+        });
+
+        // Click Handler for Swap (Click-to-Swap Mode)
+        primaryCard.addEventListener('click', (e) => {
+            e.stopPropagation();
+
+            if (hasMultiple) {
+                // Expand Stack on click (Direct call for robustness)
+                console.log('[Click-Swap] Expanding stack for:', primaryAlt.className);
+                createStack();
+            } else if (primaryAlt.isValid && window._swapContext && window._swapContext.active) {
+                // Direct Swap (Single Option)
+                const ctx = window._swapContext;
+                console.log('[Click-Swap] Executing direct swap for', ctx.class, '->', primaryAlt.className);
+
+                window.handleSwap(
+                    ctx.course,
+                    ctx.class,
+                    primaryAlt.className,
+                    ctx.container,
+                    ctx.customColors
+                );
+
+                // Trigger cleanup
+                if (ctx.container && ctx.container._swapCleanup) {
+                    ctx.container._swapCleanup();
+                }
+            }
+        });
+
+        // Primary card content
+        const lecturer = primarySession.lecturer
+            ? primarySession.lecturer.split(' ').slice(0, 2).join(' ')
+            : '';
+        const location = primarySession.location || '';
+
+        primaryCard.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%;">
+                <div style="flex:1;">
+                    <div style="font-size:12px; font-weight:600; color:${primaryAlt.isValid ? '#166534' : '#DC2626'};">
+                        ${primaryAlt.className}
+                    </div>
+                    ${lecturer ? `<div style="font-size:10px; color:#666; margin-top:2px;">${lecturer}</div>` : ''}
+                    ${location ? `<div style="font-size:9px; color:#888; margin-top:1px; display:flex; align-items:center; gap:2px;">${locationIcon} ${location}</div>` : ''}
+                </div>
+                ${hasMultiple ? `
+                    <div style="background:${validOptions.length > 1 ? '#22C55E' : '#888'}; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:12px; white-space:nowrap;">
+                        +${group.length - 1} more
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        ghostContainer.appendChild(primaryCard);
+
+        // --- In-Place Stack (The "Split" Design) ---
+        if (hasMultiple) {
+            // Ensure ghost container allows overflow for the stack
+            ghostContainer.style.overflow = 'visible';
+            ghostContainer.style.zIndex = '100'; // Bring to front
+
+            let stackOverlay = null;
+            let hideTimeout = null;
+
+            const createStack = () => {
+                if (stackOverlay) return; // Already created
+
+                // PORTAL IMPLEMENTATION: Append to body to avoid overflow/z-index issues
+                stackOverlay = document.createElement('div');
+                stackOverlay.className = 'ghost-stack-overlay';
+                document.body.appendChild(stackOverlay);
+
+                // Calculate Position relative to Viewport
+                const rect = ghostContainer.getBoundingClientRect();
+                const scrollX = window.scrollX || window.pageXOffset;
+                const scrollY = window.scrollY || window.pageYOffset;
+
+                // BUFFER ZONE: Add padding to bridge the gap between ghost and stack
+                // This prevents `mouseleave` from triggering when moving mouse quickly
+                Object.assign(stackOverlay.style, {
+                    position: 'absolute',
+                    top: `${rect.top + scrollY - 10}px`, // -10px buffer
+                    left: `${rect.left + scrollX - 10}px`, // -10px buffer
+                    width: `${rect.width + 20}px`, // +20px total width
+                    padding: '10px', // Transparent padding acts as the bridge
+                    height: 'auto',
+                    maxHeight: '320px', // Increased for padding
+                    zIndex: '99999', // Higher than everything
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    pointerEvents: 'auto',
+                    boxSizing: 'border-box' // Include padding in width
+                });
+
+                // Render ALL options as cards in the stack
+                group.forEach((entry, idx) => {
+                    const { alt, session: sess } = entry;
+                    const optionCard = document.createElement('div');
+
+                    const optLecturer = sess.lecturer ? sess.lecturer.split(' ').slice(0, 2).join(' ') : 'TBA';
+                    const optLocation = sess.location || '';
+
+                    Object.assign(optionCard.style, {
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        background: alt.isValid ? '#f0fdf4' : '#fef2f2',
+                        border: alt.isValid ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                        cursor: alt.isValid ? 'pointer' : 'not-allowed',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        transition: 'transform 0.1s ease',
+                        flexShrink: 0,
+                        position: 'relative', // For z-index context
+                        pointerEvents: 'auto', // Double ensure
+                        userSelect: 'none' // Prevent text selection on rapid clicks
+                    });
+
+                    optionCard.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-size:11px; font-weight:600; color:${alt.isValid ? '#166534' : '#DC2626'};">
+                                    ${alt.className}
+                                </div>
+                                <div style="font-size:9px; color:#666; margin-top:1px;">
+                                    ${optLecturer}${optLocation ? ` • ${optLocation}` : ''}
+                                </div>
+                            </div>
+                            ${alt.isValid ? '' : '<span style="font-size:10px; color:#EF4444;">✗</span>'}
+                        </div>
+                    `;
+
+                    // Hover
+                    optionCard.onmouseenter = () => { optionCard.style.background = '#dcfce7'; };
+                    optionCard.onmouseleave = () => { optionCard.style.background = '#f0fdf4'; };
+
+                    // Click Event (Swap Mode) - Direct & Robust
+                    optionCard.addEventListener('click', (e) => {
+                        e.preventDefault(); // Prevent ghost click passthrough
+                        e.stopPropagation();
+                        console.log('[Stack-Swap] Clicked option (Portal):', alt.className);
+
+                        if (alt.isValid && window._swapContext && window._swapContext.active) {
+                            const ctx = window._swapContext;
+                            console.log('[Stack-Swap] Executing direct swap for', ctx.class, '->', alt.className);
+
+                            window.handleSwap(
+                                ctx.course,
+                                ctx.class,
+                                alt.className,
+                                ctx.container,
+                                ctx.customColors
+                            );
+
+                            if (ctx.container && ctx.container._swapCleanup) {
+                                ctx.container._swapCleanup();
+                            }
+                            removeStack();
+                        }
+                    });
+
+                    // Drop Handler (DnD) with Visual Feedback
+                    optionCard.addEventListener('dragenter', (e) => {
+                        e.preventDefault();
+                        if (alt.isValid) optionCard.style.background = '#dcfce7';
+                    });
+                    optionCard.addEventListener('dragleave', (e) => {
+                        // Only remove highlight if leaving the card entirely (not entering a child)
+                        if (optionCard.contains(e.relatedTarget)) return;
+                        optionCard.style.background = '#f0fdf4';
+                    });
+                    optionCard.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        if (alt.isValid) optionCard.style.background = '#dcfce7';
+                    });
+                    optionCard.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (window._dragContext && window._dragContext.active) {
+                            const ctx = window._dragContext;
+                            const dropEvent = new CustomEvent('manual-drop', { detail: { className: alt.className } });
+                            if (ctx.container) ctx.container.dispatchEvent(dropEvent);
+                            removeStack();
+                        }
+                    });
+
+                    stackOverlay.appendChild(optionCard);
+                });
+
+                // Interaction Logic
+                stackOverlay.addEventListener('mouseleave', scheduleRemoval);
+                stackOverlay.addEventListener('mouseenter', cancelRemoval);
+            };
+
+            const removeStack = () => {
+                if (stackOverlay) {
+                    stackOverlay.remove();
+                    stackOverlay = null;
+                }
+            };
+
+            const scheduleRemoval = () => {
+                clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(removeStack, 150); // Increased delay
+            };
+
+            const cancelRemoval = () => {
+                clearTimeout(hideTimeout);
+            };
+
+            // Triggers on the Base Ghost
+            ghostContainer.addEventListener('mouseenter', createStack);
+            ghostContainer.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                createStack();
+            });
+
+            // Auto-Expand if in Manual Swap Mode (Robust Timing)
+            if (window._swapContext && window._swapContext.active) {
+                // Ensure layout is stable before creating rect-based portal
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        if (window._swapContext && window._swapContext.active) {
+                            createStack();
+                        }
+                    });
+                });
+            }
+        }
+
+        // --- Hover effect for primary card (ALL options) ---
+        // Removed !hasMultiple check so ALL cards get hover feedback
+        primaryCard.addEventListener('mouseenter', () => {
+            if (primaryAlt.isValid) {
+                primaryCard.style.transform = 'scale(1.02)';
+                primaryCard.style.boxShadow = '0 6px 16px rgba(34, 197, 94, 0.2)';
+            }
+        });
+        primaryCard.addEventListener('mouseleave', () => {
+            primaryCard.style.transform = 'scale(1)';
+            primaryCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+        });
+        // Single card also needs drag events for hover effect
+        primaryCard.addEventListener('dragenter', () => {
+            if (primaryAlt.isValid) primaryCard.style.transform = 'scale(1.02)';
+        });
+        primaryCard.addEventListener('dragleave', () => {
+            primaryCard.style.transform = 'scale(1)';
+        });
+
+        dayCol.appendChild(ghostContainer);
     });
 }
 
@@ -256,7 +540,90 @@ export function renderGhosts(alternatives, container, customColors = {}) {
  */
 export function clearGhosts(container) {
     if (!container) return;
-    container.querySelectorAll('.drop-zone-ghost').forEach(g => g.remove());
+
+    // Remove local ghosts
+    const ghosts = container.querySelectorAll('.drop-zone-ghost-container');
+    ghosts.forEach(g => g.remove());
+
+    // Remove Portal Popovers (tracked in container property)
+    if (container._activePopovers) {
+        container._activePopovers.forEach(p => p.remove());
+        container._activePopovers = [];
+    }
+
+    // Fallback: Remove any stray popovers/stacks
+    document.querySelectorAll('.ghost-options-popover').forEach(p => p.remove());
+    document.querySelectorAll('.ghost-stack-overlay').forEach(p => p.remove()); // New UI removal
+}
+
+/**
+ * Start Swap Mode (Click-to-Swap)
+ * Renders ghosts and enables click interactions
+ * @param {Object} session - Session object to swap
+ * @param {HTMLElement} container - Calendar container
+ * @param {Object} customColors - Color assignments
+ */
+export function startSwapMode(session, container, customColors) {
+    if (!session || !container) return;
+
+    // 1. Calculate Alternatives
+    const sessionType = getSessionType(session.class);
+    const currentSchedule = window.allSchedules ? window.allSchedules[window.viewIndex || 0] : [];
+    const alternatives = getAlternatives(session.course, sessionType, session.class, currentSchedule);
+
+    console.log('[SwapMode] Started for', session.class, 'Found:', alternatives.length);
+
+    if (alternatives.length === 0) {
+        import('./alert.js').then(({ showAlert }) => {
+            showAlert("No Options Found", "No other available times were found for this class.");
+        }).catch(err => {
+            console.error("Failed to load alert module", err);
+            // Fallback
+            alert("No other available times for this class.");
+        });
+        return;
+    }
+
+    // 2. Set up Global Swap Context
+    window._swapContext = {
+        course: session.course,
+        class: session.class,
+        container: container,
+        customColors: customColors,
+        active: true
+    };
+    console.log('[SwapMode] Context set:', window._swapContext);
+
+    // 3. Render Ghosts
+    renderGhosts(alternatives, container, customColors);
+
+    // 4. Overlay & Cleanup
+    const overlay = document.createElement('div');
+    overlay.className = 'swap-mode-overlay';
+    Object.assign(overlay.style, {
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+        zIndex: '150', // Below ghosts (200)
+        cursor: 'default'
+    });
+
+    // Cleanup Function
+    const cleanup = () => {
+        window._swapContext = null;
+        clearGhosts(container);
+        overlay.remove();
+        delete container._swapOverlay;
+    };
+
+    // Expose cleanup so ghost clicks can trigger it
+    container._swapCleanup = cleanup;
+
+    overlay.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cleanup();
+    });
+
+    container.appendChild(overlay);
+    container._swapOverlay = overlay;
 }
 
 // Expose to window for global access
@@ -268,5 +635,6 @@ window.sessionSwapper = {
     performSwap,
     findMatchingScheduleIndex,
     renderGhosts,
-    clearGhosts
+    clearGhosts,
+    startSwapMode // Added
 };

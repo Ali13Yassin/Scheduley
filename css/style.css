@@ -43,19 +43,23 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    flex: 1;
+    /* Ensure equal width for valid percentage alignment */
 }
 
 .step-circle {
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    /* Prevent circle from squishing */
     border-radius: 50%;
     background-color: #E5E7EB;
     color: #6B7280;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    font-size: 13px;
+    font-weight: 700;
+    font-size: 11px;
     transition: all 0.3s ease;
     border: 2px solid transparent;
 }
@@ -67,7 +71,7 @@ body {
 }
 
 .step-item.completed .step-circle {
-    background-color: #22C55E;
+    background-color: #CE3602;
     color: white;
 }
 
@@ -85,7 +89,7 @@ body {
 }
 
 .step-item.completed .step-label {
-    color: #22C55E;
+    color: #CE3602;
 }
 
 /* ===================================
@@ -124,14 +128,75 @@ button:focus {
     outline: none;
 }
 
+
+/* Primary Button - Premium Gradient */
+.btn-primary {
+    background: linear-gradient(135deg, #CE3602 0%, #B32F02 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(206, 54, 2, 0.3);
+    border: none;
+    padding: 12px 24px;
+    /* Increased padding */
+    font-size: 15px;
+    /* Increased font size */
+    min-width: 120px;
+    /* Ensure minimum width */
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(206, 54, 2, 0.4);
+    background: linear-gradient(135deg, #E84003 0%, #CE3602 100%);
+}
+
 .btn-secondary {
-    background-color: #F3F4F6;
-    color: #374151;
+    background-color: white;
+    color: #4B5563;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    padding: 12px 24px;
+    /* Increased padding */
+    font-size: 15px;
+    /* Increased font size */
+    min-width: 100px;
+    /* Ensure minimum width */
 }
 
 .btn-secondary:hover {
-    background-color: #E5E7EB;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #CE3602;
+    color: #CE3602;
+    background-color: #FFF5F2;
+    box-shadow: 0 4px 12px rgba(206, 54, 2, 0.1);
+    transform: translateY(-1px);
+}
+
+/* Circular Icon Buttons */
+.btn-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: white;
+    color: #4B5563;
+    border: 1px solid #E5E7EB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+}
+
+.btn-circle:hover {
+    border-color: #CE3602;
+    color: #CE3602;
+    background-color: #FFF5F2;
+    box-shadow: 0 4px 12px rgba(206, 54, 2, 0.15);
+    transform: translateY(-2px);
+}
+
+.btn-circle svg {
+    width: 20px;
+    height: 20px;
 }
 
 /* Navigation buttons - compact and styled */
@@ -141,18 +206,35 @@ button:focus {
 #schedule-stage-back {
     background-color: white;
     color: #CE3602;
-    border: 2px solid #CE3602;
+    border: 2px solid #E5E7EB;
+    /* Default gray border */
     padding: 8px 16px;
     font-size: 13px;
     border-radius: 8px;
 }
 
+#back,
+#next {
+    border: 2px solid #E5E7EB;
+    /* Force gray border initially */
+}
+
+/* Bigger SVG for nav buttons */
+#back svg,
+#next svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Hover states */
 .btn-nav:hover,
 #back:hover,
 #next:hover,
 #schedule-stage-back:hover {
-    background-color: #CE3602;
-    color: white;
+    background-color: #FFF5F2;
+    /* Light orange bg */
+    border-color: #CE3602;
+    color: #CE3602;
     transform: translateY(0);
 }
 
@@ -197,7 +279,8 @@ button:focus {
     background: linear-gradient(135deg, #1A9399 0%, #047857 100%);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(26, 147, 153, 0.3);
-    margin-top: 12px;
+    margin-top: 0;
+    /* Align with others */
 }
 
 .save-schedule-btn:hover,
@@ -212,30 +295,60 @@ button:focus {
 
 #results-summary {
     background: white;
-    padding: 16px 20px;
-    border-radius: 14px;
+    padding: 10px 16px;
+    /* Reduced padding */
+    border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    /* Reduced gap */
 }
 
 #results-summary h3,
 #total-schedules {
     margin: 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: #1F2937;
+    font-size: 15px;
+    font-weight: 600;
+    color: #374151;
+    /* Softer gray */
 }
 
 #current-index-label {
-    font-size: 14px;
+    font-size: 13px;
     color: #6B7280;
     font-weight: 500;
 }
+
+/* Clear buttons text */
+#clear-locks-btn,
+#clear-dayoff-filter {
+    font-size: 13px;
+    font-weight: 600;
+    color: #9CA3AF;
+    /* Light gray default */
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+    background: transparent;
+    border: 1px solid transparent;
+    /* Prevent shrinking */
+    padding: 6px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+    /* Prevent shrinking */
+}
+
+#clear-locks-btn:hover,
+#clear-dayoff-filter:hover {
+    color: #CE3602;
+    background-color: #FFF5F2;
+}
+
 
 /* Day off buttons - compact */
 .dayoff-btn {
@@ -247,6 +360,8 @@ button:focus {
     border: 1px solid #E5E7EB;
     color: #4B5563;
     transition: all 0.2s ease;
+    position: relative;
+    /* For badge */
 }
 
 .dayoff-btn:hover {
@@ -261,6 +376,39 @@ button:focus {
     background: #CE3602;
     border-color: #CE3602;
     color: white;
+}
+
+/* Badge for counts */
+.badge-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background-color: #CE3602;
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: 1px solid white;
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+/* If button is active/hovered, maybe style badge differently? */
+.dayoff-btn.active .badge-count {
+    background-color: white;
+    color: #CE3602;
+    border-color: #CE3602;
+}
+
+.dayoff-btn.hidden {
+    display: none;
 }
 
 .dayoff-btn:disabled {
@@ -604,9 +752,29 @@ input[type="radio"]:checked+.filter-chip {
 }
 
 .errorMessage p {
-    margin: 0 0 20px;
+    margin: 0 0 24px;
     color: #4B5563;
     font-size: 14px;
+}
+
+#close-alert {
+    background-color: #CE3602;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(206, 54, 2, 0.3);
+    transition: all 0.2s ease;
+}
+
+#close-alert:hover {
+    background-color: #E63E02;
+    /* Slightly brighter */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(206, 54, 2, 0.4);
 }
 
 #processOverlay {
@@ -786,4 +954,36 @@ input[type="radio"]:checked+.filter-chip {
     .uni-card {
         width: 100%;
     }
+}
+
+/* Schedule Action Buttons Container */
+.schedule-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding: 0 16px;
+    /* Match vertical gap (0) and horizontal alignment (16px) */
+}
+
+#schedule-stage-back-bottom {
+    background-color: white;
+    color: #4B5563;
+    border: 1px solid #E5E7EB;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#schedule-stage-back-bottom:hover {
+    border-color: #CE3602;
+    color: #CE3602;
+    background-color: #FFF5F2;
+}
+
+.schedule-nav-center {
+    display: flex;
+    gap: 16px;
+    align-items: center;
 }

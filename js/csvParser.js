@@ -96,24 +96,82 @@ export function parseCSVContent(csvContent) {
         }
 
         if (sessionsToAdd.length > 0) {
-            // Push the sessions as a GROUP (Array) to ensure they are selected together
-            // If it's a normal session, it will be an array of length 1: [session]
-            // If it's a split session, it will be: [part1, part2]
-            switch (type) {
-                case "LEC":
-                    courses[course].lectures.push(sessionsToAdd);
-                    break;
-                case "LAB":
-                    courses[course].labs.push(sessionsToAdd);
-                    break;
-                case "TUT":
-                    courses[course].tutorials.push(sessionsToAdd);
-                    break;
-                default:
-                    console.warn(`Unrecognized type '${type}' at row ${i}`);
+            // Check for self-conflict (duplicate/overlapping sessions in same group)
+            // If conflict exists, split them into ALTERNATIVES instead of one mandatory group
+            let isSelfConflicting = false;
+            if (sessionsToAdd.length > 1) {
+                isSelfConflicting = hasSelfConflict(sessionsToAdd);
+            }
+
+            if (isSelfConflicting) {
+                console.warn(`[CSVParser] Found self-conflicting group for ${course} ${type} (likely duplicate entries). Splitting into ${sessionsToAdd.length} alternatives.`);
+
+                // Push each session as a SEPARATE group (Alternative)
+                sessionsToAdd.forEach(singleSession => {
+                    const group = [singleSession];
+                    switch (type) {
+                        case "LEC":
+                            courses[course].lectures.push(group);
+                            break;
+                        case "LAB":
+                            courses[course].labs.push(group);
+                            break;
+                        case "TUT":
+                            courses[course].tutorials.push(group);
+                            break;
+                        default:
+                            console.warn(`Unrecognized type '${type}' at row ${i}`);
+                    }
+                });
+            } else {
+                // Standard behavior: Push as a single MANDATORY group
+                switch (type) {
+                    case "LEC":
+                        courses[course].lectures.push(sessionsToAdd);
+                        break;
+                    case "LAB":
+                        courses[course].labs.push(sessionsToAdd);
+                        break;
+                    case "TUT":
+                        courses[course].tutorials.push(sessionsToAdd);
+                        break;
+                    default:
+                        console.warn(`Unrecognized type '${type}' at row ${i}`);
+                }
             }
         }
     }
 
     return { courses, courseDetails };
+}
+
+// Helper: Check if a group of sessions has internal time conflicts
+function hasSelfConflict(sessions) {
+    if (!sessions || sessions.length < 2) return false;
+
+    const parse = (t) => {
+        if (!t) return 0;
+        const [h, m] = t.toString().split(':').map(Number);
+        return h + (m || 0) / 60;
+    };
+
+    for (let i = 0; i < sessions.length; i++) {
+        for (let j = i + 1; j < sessions.length; j++) {
+            const s1 = sessions[i];
+            const s2 = sessions[j];
+
+            if (s1.day !== s2.day) continue;
+
+            const start1 = parse(s1.start);
+            const end1 = parse(s1.end);
+            const start2 = parse(s2.start);
+            const end2 = parse(s2.end);
+
+            // Check overlap
+            if (start1 < end2 && end1 > start2) {
+                return true;
+            }
+        }
+    }
+    return false;
 }

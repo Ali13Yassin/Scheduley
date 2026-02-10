@@ -5,7 +5,7 @@ import { showAlert } from './alert.js';
 let worker = new Worker("../js/scheduleFinder.js");
 
 // Initialize the file handler
-initFileHandler(); //TODO: only load when needed
+initFileHandler(); //TODO: only load when needed 
 
 // Check if website is loaded on mobile
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -62,11 +62,22 @@ function updateStepProgress(stageId) {
 
     stepItems.forEach((item, index) => {
         const stepNum = index + 1;
+        const circle = item.querySelector('.step-circle');
         item.classList.remove('active', 'completed');
+
         if (stepNum < currentStep) {
             item.classList.add('completed');
+            // Show checkmark
+            circle.innerHTML = `
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                </svg>
+            `;
         } else if (stepNum === currentStep) {
             item.classList.add('active');
+            circle.innerText = stepNum;
+        } else {
+            circle.innerText = stepNum;
         }
     });
 
@@ -116,9 +127,10 @@ function getSelectedFilters() {
     return filterData;
 }
 
-let viewIndex = 0;
+// let viewIndex = 0; // REMOVED: Use window.viewIndex as single source of truth
+window.viewIndex = window.viewIndex || 0; // Ensure initialized
 let filteredIndexes = null; // array of indexes into allSchedules matching active filter
-let activeDayOff = null; // e.g., 'MON' or null
+window.activeDaysOff = new Set(); // Multi-select Support
 
 // ===================================
 // LOCK SLOT FEATURE
@@ -142,20 +154,31 @@ function getLockKey(course, sessionType, className) {
 
 // Toggle lock state for a session group
 function toggleLock(course, className) {
+    console.log('[toggleLock] ===== START =====');
     const sessionType = getSessionType(className);
     const key = getLockKey(course, sessionType, className);
-    if (window.lockedGroups.has(key)) {
+    const wasLocked = window.lockedGroups.has(key);
+
+    if (wasLocked) {
         window.lockedGroups.delete(key);
     } else {
         window.lockedGroups.add(key);
     }
+
+    // Fix 4: For custom/swapped schedules, we MUST recompute filters so navigation knows about the new lock.
+    const generatedCount = window.generatedScheduleCount || window.allSchedules.length;
+    const isCustomSchedule = window.viewIndex >= generatedCount;
+
+    // ALWAYS recompute filters so "Next" button works correctly with new lock
     recomputeFilteredIndexes();
+
     updateResultsSummary();
     // Re-render to update lock icons
     const schedules = window.allSchedules || [];
-    if (schedules.length > 0 && schedules[viewIndex]) {
-        renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    if (schedules.length > 0 && schedules[window.viewIndex]) {
+        renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
     }
+    console.log('[toggleLock] ===== END =====');
 }
 
 // Check if a session is locked
@@ -171,8 +194,8 @@ function clearAllLocks() {
     recomputeFilteredIndexes();
     updateResultsSummary();
     const schedules = window.allSchedules || [];
-    if (schedules.length > 0 && schedules[viewIndex]) {
-        renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    if (schedules.length > 0 && schedules[window.viewIndex]) {
+        renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
     }
 }
 
@@ -193,7 +216,7 @@ function scheduleMatchesLocks(schedule, lockedGroups) {
     return true;
 }
 
-// Recompute filtered indexes: DayOff ∩ Locks
+// Recompute filtered indexes: DaysOff Intersection ∩ Locks
 function recomputeFilteredIndexes() {
     const schedules = window.allSchedules || [];
     if (schedules.length === 0) {
@@ -206,71 +229,43 @@ function recomputeFilteredIndexes() {
         window.viewIndex = parseInt(window.viewIndex, 10) || 0;
     }
 
-    console.log('[recompute] Starting. Current viewIndex:', window.viewIndex, 'Locked:', Array.from(window.lockedGroups));
-
     // Start with all indexes
     let indexes = schedules.map((_, i) => i);
 
-    // Apply DayOff filter
-    if (activeDayOff) {
+    // Apply DayOff filter (Multi-select AND Logic)
+    if (window.activeDaysOff.size > 0) {
         const groups = groupSchedulesByDayOff(schedules);
-        const dayMatches = groups[activeDayOff] || [];
-        indexes = indexes.filter(i => dayMatches.includes(i));
 
-        // Debug current index against DayOff
-        if (!dayMatches.includes(window.viewIndex)) {
-            console.warn('[recompute] Current schedule violates DayOff filter:', activeDayOff);
+        // Schedule must match ALL selected days
+        for (const day of window.activeDaysOff) {
+            const dayMatches = groups[day] || [];
+            indexes = indexes.filter(i => dayMatches.includes(i));
         }
     }
 
     // Apply Lock filter
     if (window.lockedGroups.size > 0) {
         indexes = indexes.filter(i => {
-            const matches = scheduleMatchesLocks(schedules[i], window.lockedGroups);
-            if (i === window.viewIndex && !matches) {
-                console.warn('[recompute] Current schedule fails lock check!');
-                // Log which lock failed
-                for (const lockKey of window.lockedGroups) {
-                    const parts = lockKey.split('|||');
-                    if (parts.length === 3) {
-                        const [c, st, cls] = parts;
-                        const types = window.scheduleApp.getSessionType(cls);
-                        const found = schedules[i].some(s => s.course === c && s.class === cls);
-                        if (!found) console.warn(' - Missing locked session:', cls);
-                    }
-                }
-            }
-            return matches;
+            return scheduleMatchesLocks(schedules[i], window.lockedGroups);
         });
     }
 
     // Set result
     filteredIndexes = indexes.length > 0 ? indexes : null;
-    console.log('[recompute] Filtered count:', filteredIndexes ? filteredIndexes.length : 0);
 
     // STICKY VIEW IMPLEMENTATION:
-    // Only force sticky view if the schedule is CUSTOM (added via swap)
-    // OR if the user explicitly locked something on it (implied by viewIndex being high).
-    // Original schedules (index < generated count) should respect filters.
     const isCustomSchedule = window.viewIndex >= (window.generatedScheduleCount || window.allSchedules.length);
-
-    // Also sticky if we locked something on it? 
-    // Actually, locking a session on an original schedule DOES NOT create a new schedule index.
-    // So if I lock on Schedule 0, viewIndex remains 0.
-    // If I then apply "Day Off", Schedule 0 should disappear.
-    // So ONLY custom schedules should be sticky.
 
     if (isCustomSchedule && window.viewIndex >= 0 && schedules[window.viewIndex]) {
         if (!filteredIndexes) filteredIndexes = [];
         if (!filteredIndexes.includes(window.viewIndex)) {
-            console.log('[recompute] Forcing custom/swapped viewIndex', window.viewIndex, 'into filtered list (Sticky View)');
+            // Force custom index into filtered list
             filteredIndexes.push(window.viewIndex);
         }
     }
 
-    // Adjust viewIndex if current not in filtered (Should not happen with Sticky View)
+    // Adjust viewIndex if current not in filtered (Should not happen with Sticky View if custom)
     if (filteredIndexes && !filteredIndexes.includes(window.viewIndex)) {
-        console.warn('[recompute] Current viewIndex', window.viewIndex, 'not in filtered list. Jumping to', filteredIndexes[0]);
         window.viewIndex = filteredIndexes[0];
     }
 }
@@ -321,33 +316,109 @@ function updateResultsSummary() {
     if (totalEl) totalEl.textContent = `Found ${total} schedules`;
 
     const currentTotal = filteredIndexes ? filteredIndexes.length : total;
-    const displayIdx = currentTotal > 0 ? ((filteredIndexes ? filteredIndexes.indexOf(viewIndex) : viewIndex) + 1) : 0;
+    const displayIdx = currentTotal > 0 ? ((filteredIndexes ? filteredIndexes.indexOf(window.viewIndex) : window.viewIndex) + 1) : 0;
     if (idxEl) idxEl.textContent = currentTotal > 0 ? `Viewing ${displayIdx} / ${currentTotal}` : '–';
 
     if (filterEl) {
-        filterEl.textContent = activeDayOff ? `Filter: ${activeDayOff} off` : '';
+        const days = Array.from(window.activeDaysOff).sort();
+        filterEl.textContent = days.length > 0 ? `Filter: ${days.join(', ')} off` : '';
     }
 
-    // update counts on buttons
-    const groups = groupSchedulesByDayOff(window.allSchedules || []);
-    Object.entries(buttons).forEach(([day, btn]) => {
+    // Update counts and visibility on buttons (Dynamic Facets)
+    const schedules = window.allSchedules || [];
+    const groups = groupSchedulesByDayOff(schedules);
+    const dayNames = Object.keys(buttons);
+
+    // Helper: Compute potential count if a day filter were added to current context
+    const getPotentialCount = (dayToAdd) => {
+        // Base: All schedules
+        let candidates = schedules.map((_, i) => i);
+
+        // Apply existing active filters (EXCLUDING the one we are testing if it's already active)
+        // Wait, normally facets show results if we *keep* current selection.
+        // If I have Mon selected, and I look at Mon, it shows current count.
+        // If I look at Sun, it shows count if I add Sun (Mon AND Sun).
+
+        // Multi-select AND logic:
+        const hypotheticalSet = new Set(window.activeDaysOff);
+        hypotheticalSet.add(dayToAdd); // Ensure it's in the set for test
+
+        // 1. Filter by Days
+        for (const d of hypotheticalSet) {
+            const dayMatches = groups[d] || [];
+            candidates = candidates.filter(i => dayMatches.includes(i));
+        }
+
+        // 2. Filter by Locks (Locks are always active)
+        if (window.lockedGroups.size > 0) {
+            candidates = candidates.filter(i => {
+                return scheduleMatchesLocks(schedules[i], window.lockedGroups);
+            });
+        }
+
+        return candidates.length;
+    };
+
+    dayNames.forEach(day => {
+        const btn = buttons[day];
         if (!btn) return;
-        const count = groups[day]?.length || 0;
+
+        const count = getPotentialCount(day);
+        const isActive = window.activeDaysOff.has(day);
+
+        // Refined Label: Just "Mon", "Tue" etc.
         const label = day.charAt(0) + day.slice(1).toLowerCase();
-        btn.textContent = `${label} off (${count})`;
-        btn.disabled = count === 0;
-        btn.classList.toggle('active', activeDayOff === day);
+
+        // Badge Logic
+        // Remove existing badge if any
+        let badge = btn.querySelector('.badge-count');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'badge-count';
+            btn.appendChild(badge);
+        }
+        badge.textContent = count;
+
+        // Button Text (Clean)
+        // Use first child text node to avoid overwriting badge
+        // Store badge, clear content, re-append text + badge
+        const badgeClone = badge.cloneNode(true);
+        btn.textContent = `${label} off `;
+        btn.appendChild(badgeClone);
+
+        btn.disabled = count === 0 && !isActive; // Disable if 0 results (unless already active)
+        btn.classList.toggle('active', isActive);
+
+        // Visibility: Hide if count is 0 and NOT active
+        if (count === 0 && !isActive) {
+            btn.classList.add('hidden');
+        } else {
+            btn.classList.remove('hidden');
+        }
     });
 }
 
 function applyDayOffFilter(day) {
-    activeDayOff = day;
+    if (!day) {
+        // Clear all
+        window.activeDaysOff.clear();
+    } else {
+        // Toggle logic
+        if (window.activeDaysOff.has(day)) {
+            window.activeDaysOff.delete(day);
+        } else {
+            window.activeDaysOff.add(day);
+        }
+    }
+
     // Use centralized filter computation (includes lock intersection)
     recomputeFilteredIndexes();
+
     // Render based on current filter
     const schedules = window.allSchedules || [];
-    if (schedules.length === 0) return;
-    renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    if (schedules.length > 0 && schedules[window.viewIndex]) {
+        renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
+    }
     updateResultsSummary();
 }
 
@@ -508,6 +579,19 @@ function showSelectedCoursesDetails(courseId) {
         };
     }
 
+    function saveSessionChanges(cId, sType, sIndex, newGroup) {
+        // Update local object
+        coursesData[cId][sType][sIndex] = newGroup;
+
+        // Update Global State
+        if (window.courses && window.courses[cId]) {
+            window.courses[cId][sType][sIndex] = newGroup;
+        }
+
+        // Update persistence
+        localStorage.setItem('coursesData', JSON.stringify(coursesData));
+    }
+
     function createSessionCard(sessionGroup, type, index) {
         const card = document.createElement('div');
         card.className = 'course-card';
@@ -531,28 +615,29 @@ function showSelectedCoursesDetails(courseId) {
         });
 
         card.innerHTML = `
-            <div class="session-card-title">${className}</div>
+            <div class="session-card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>${className}</span>
+                <button class="edit-btn" style="padding: 2px 8px; font-size: 10px; background: #E5E7EB; border-radius: 4px; color: #374151; border: none; cursor: pointer;">Edit</button>
+            </div>
              <div class="session-card-details">
-                ${detailsHTML}
-                <div style="margin-top: 4px; border-top: 1px solid #eee; padding-top: 4px;">
+                <div class="details-content">${detailsHTML}</div>
+                <div class="edit-controls" style="display:none; margin-top:8px; flex-direction:column; gap:4px;"></div>
+                <div class="lecturer-info" style="margin-top: 4px; border-top: 1px solid #eee; padding-top: 4px;">
                     ${lecturer}
                 </div>
             </div>
         `;
 
-        // Check existing selections
-        // logic: if ANY session in this group is found in selectedSessionsToRemove, 
-        // it counts as selected (implied: the whole group is selected/removed).
-        // Actually, selectedSessionsToRemove stores "class" names usually.
-        // Let's check how it stores them: "sessionsArray.push(session.class);"
-        // So checking if the class name relies in the list is enough.
-
+        // Selection Logic
         const isSelected = window.selectedSessionsToRemove[courseId][sessionType]
             .includes(className);
 
         if (isSelected) card.classList.add('selected');
 
         card.addEventListener('click', () => {
+            // If editing, do not toggle selection
+            if (card.classList.contains('editing')) return;
+
             const sessionsArray = window.selectedSessionsToRemove[courseId][sessionType];
             const sessionIndex = sessionsArray.indexOf(className);
 
@@ -568,6 +653,86 @@ function showSelectedCoursesDetails(courseId) {
 
             // persistSelectedSessions();
             updateTimetablePreview();
+        });
+
+        // Edit Functionality
+        const editBtn = card.querySelector('.edit-btn');
+        const detailsContent = card.querySelector('.details-content');
+        const editControls = card.querySelector('.edit-controls');
+
+        editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (card.classList.contains('editing')) return;
+
+            card.classList.add('editing');
+            detailsContent.style.display = 'none';
+            editBtn.style.display = 'none';
+            editControls.style.display = 'flex';
+
+            // Generate inputs
+            editControls.innerHTML = '';
+
+            sessionGroup.forEach((session, sIndex) => {
+                const row = document.createElement('div');
+                row.style.marginBottom = '6px';
+                row.innerHTML = `
+                    <div style="font-weight:600; font-size:11px; margin-bottom:2px;">${session.day}</div>
+                    <div style="display:flex; gap:4px; align-items:center;">
+                        <input type="time" class="edit-start-${sIndex}" value="${session.start}" style="border:1px solid #ccc; border-radius:4px; padding:2px; font-size:11px; width: 75px;">
+                        <span>-</span>
+                        <input type="time" class="edit-end-${sIndex}" value="${session.end}" style="border:1px solid #ccc; border-radius:4px; padding:2px; font-size:11px; width: 75px;">
+                    </div>
+                 `;
+                editControls.appendChild(row);
+            });
+
+            // Action buttons
+            const actions = document.createElement('div');
+            actions.style.display = 'flex';
+            actions.style.gap = '8px';
+            actions.style.marginTop = '4px';
+            actions.innerHTML = `
+                <button class="save-edit-btn" style="flex:1; background:#CE3602; color:white; border:none; border-radius:4px; padding:4px; font-size:11px; cursor:pointer;">Save</button>
+                <button class="cancel-edit-btn" style="flex:1; background:#E5E7EB; color:#374151; border:none; border-radius:4px; padding:4px; font-size:11px; cursor:pointer;">Cancel</button>
+            `;
+            editControls.appendChild(actions);
+
+            // Listeners
+            actions.querySelector('.cancel-edit-btn').addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                card.classList.remove('editing');
+                detailsContent.style.display = 'block';
+                editBtn.style.display = 'block';
+                editControls.style.display = 'none';
+            });
+
+            actions.querySelector('.save-edit-btn').addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                // Gather Data
+                const newSessions = JSON.parse(JSON.stringify(sessionGroup)); // Deep copy
+                let valid = true;
+
+                newSessions.forEach((s, sIndex) => {
+                    const startVal = editControls.querySelector(`.edit-start-${sIndex}`).value;
+                    const endVal = editControls.querySelector(`.edit-end-${sIndex}`).value;
+
+                    if (!startVal || !endVal) valid = false;
+                    if (startVal >= endVal) {
+                        alert(`Invalid time range for ${s.day}`);
+                        valid = false;
+                    }
+                    s.start = startVal;
+                    s.end = endVal;
+                });
+
+                if (!valid) return;
+
+                // Save
+                saveSessionChanges(courseId, type, index, newSessions);
+
+                // Refresh View
+                showSelectedCoursesDetails(courseId);
+            });
         });
 
         // Preview on hover - render ALL sessions in the group
@@ -666,14 +831,14 @@ document.getElementById("back").addEventListener("click", function () {
     const schedules = window.allSchedules || [];
     if (schedules.length === 0) return;
     if (filteredIndexes && filteredIndexes.length > 0) {
-        const pos = filteredIndexes.indexOf(viewIndex);
+        const pos = filteredIndexes.indexOf(window.viewIndex);
         const prevPos = (pos <= 0 ? filteredIndexes.length - 1 : pos - 1);
-        viewIndex = filteredIndexes[prevPos];
+        window.viewIndex = filteredIndexes[prevPos];
     } else {
-        viewIndex--;
-        if (viewIndex < 0) { viewIndex = schedules.length - 1; }
+        window.viewIndex--;
+        if (window.viewIndex < 0) { window.viewIndex = schedules.length - 1; }
     }
-    renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
     updateResultsSummary();
 });
 
@@ -682,20 +847,20 @@ document.getElementById("next").addEventListener("click", function () {
     const schedules = window.allSchedules || [];
     if (schedules.length === 0) return;
     if (filteredIndexes && filteredIndexes.length > 0) {
-        const pos = filteredIndexes.indexOf(viewIndex);
+        const pos = filteredIndexes.indexOf(window.viewIndex);
         const nextPos = (pos >= filteredIndexes.length - 1 ? 0 : pos + 1);
-        viewIndex = filteredIndexes[nextPos];
+        window.viewIndex = filteredIndexes[nextPos];
     } else {
-        viewIndex++;
-        if (viewIndex >= schedules.length) { viewIndex = 0; }
+        window.viewIndex++;
+        if (window.viewIndex >= schedules.length) { window.viewIndex = 0; }
     }
-    renderSchedule(schedules[viewIndex], "schedule-details-container", window.assignedColors || {});
+    renderSchedule(schedules[window.viewIndex], "schedule-details-container", window.assignedColors || {});
     updateResultsSummary();
 });
 
 // Save schedule button
 document.getElementById("save-schedule-button").addEventListener("click", function () {
-    localStorage.setItem('savedSchedule', JSON.stringify(allSchedules[viewIndex]));
+    localStorage.setItem('savedSchedule', JSON.stringify(allSchedules[window.viewIndex]));
     localStorage.setItem('savedColors', JSON.stringify(window.assignedColors || {}));
     showAlert("Schedule saved", "This DOES NOT register you in this course, you need to manually register in SIS!", "mySchedule.html", "View schedule");
 });
@@ -845,9 +1010,9 @@ document.getElementById("processButton").addEventListener("click", function () {
             // document.getElementById("center-container").style.display = "none";
             // document.getElementById("schedule-details-container").style.display = "block";
             renderSchedule(allSchedules[0], "schedule-details-container", assignedColors);
-            viewIndex = 0;
+            window.viewIndex = 0;
             filteredIndexes = null;
-            activeDayOff = null;
+            if (window.activeDaysOff) window.activeDaysOff.clear();
             updateResultsSummary();
             showStage('schedule-details-container');
             hideLoadingOverlay();
@@ -870,7 +1035,7 @@ document.getElementById("processButton").addEventListener("click", function () {
 function wireDayOffButtons() {
     const ids = ['SUN', 'MON', 'TUE', 'WED', 'THU'];
     ids.forEach(day => {
-        const btn = document.getElementById(`dayoff-${day}`);
+        const btn = document.getElementById(`dayoff - ${day}`);
         if (btn) btn.addEventListener('click', () => applyDayOffFilter(day));
     });
     const clearBtn = document.getElementById('clear-dayoff-filter');

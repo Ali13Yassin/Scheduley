@@ -41,12 +41,13 @@
 
     <!-- Step Progress Bar -->
     <div id="step-progress" class="max-w-4xl mx-auto px-4 py-4 mb-2">
-        <div class="flex items-center justify-between relative">
+        <div class="flex items-start justify-between relative">
             <!-- Progress line background -->
-            <div class="absolute top-5 left-[10%] right-[10%] h-0.5 bg-gray-200 -z-0"></div>
+            <div class="absolute top-[11px] left-[10%] right-[10%] h-0.5 bg-gray-200 -z-0"></div>
             <!-- Progress line fill -->
             <div id="progress-fill"
-                class="absolute top-5 left-[10%] h-0.5 bg-brand-500 transition-all duration-500 -z-0" style="width: 0%">
+                class="absolute top-[11px] left-[10%] h-0.5 bg-brand-500 transition-all duration-500 -z-0"
+                style="width: 0%">
             </div>
 
             <!-- Steps -->
@@ -80,7 +81,13 @@
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">Choose data from existing Universities</h2>
                 <div id="SUT-online-import" class="course-card uni-card">ElSewedy University of Technology</div>
                 <p class="text-gray-600 mt-6 mb-2">Your University isn't here?</p>
-                <button id="upload-button" class="btn-secondary">Upload your data instead</button>
+                <button id="upload-button" class="btn-primary">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Upload your data instead
+                </button>
             </div>
             <div id="upload-container" style="display: none;">
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">How this works</h2>
@@ -91,9 +98,21 @@
                 <a href="../assets/data-template.csv" class="text-brand-500 hover:underline font-medium">Download
                     template</a><br>
                 <input type="file" id="fileInput" accept=".csv" class="mt-4 mb-4">
-                <button id="save-import-button">Next step</button>
+                <button id="save-import-button" class="btn-primary">
+                    Next step
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </button>
                 <p class="text-gray-600 mt-6 mb-2">Your University already here?</p>
-                <button id="backto-online-import-button" class="btn-secondary">Search for it instead!</button>
+                <button id="backto-online-import-button" class="btn-secondary">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search for it instead!
+                </button>
             </div>
 
             <!-- Course selection stage -->
@@ -125,8 +144,20 @@
 
                 <div class="grid-container" id="courseGrid"></div>
                 <div class="nav-row">
-                    <button id="course-selection-back" class="btn-secondary">Back</button>
-                    <button id="show-mycourse-details-button">Next</button>
+                    <button id="course-selection-back" class="btn-secondary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back
+                    </button>
+                    <button id="show-mycourse-details-button" class="btn-primary">
+                        Next
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -136,8 +167,20 @@
                 <p class="text-gray-500 mb-4">Click on a course to remove specific sessions (e.g., full lectures)</p>
                 <div class="grid-container" id="mycourseGrid"></div>
                 <div class="nav-row">
-                    <button id="mycourse-back" class="btn-secondary">Back</button>
-                    <button id="show-filter-menu-button">Next</button>
+                    <button id="mycourse-back" class="btn-secondary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back
+                    </button>
+                    <button id="show-filter-menu-button" class="btn-primary">
+                        Next
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -179,8 +222,19 @@
                     </div>
                 </div>
                 <div class="nav-row mt-4">
-                    <button id="course-details-back" class="btn-secondary">Back</button>
-                    <button id="save-mycourse-details">Save</button>
+                    <button id="course-details-back" class="btn-secondary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back
+                    </button>
+                    <button id="save-mycourse-details" class="btn-primary">
+                        Save
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -271,29 +325,21 @@
                     </div>
                 </div>
 
-                <!-- Generate button (Pill Style) -->
-                <div class="mt-6 text-center">
-                    <button id="processButton" class="generate-pill-btn" style="--clr: #D74C4C">
-                        <span class="button__icon-wrapper">
-                            <svg viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg"
-                                class="button__icon-svg" width="10">
-                                <path
-                                    d="M13.376 11.552l-.264-10.44-10.44-.24.024 2.28 6.96-.048L.2 12.56l1.488 1.488 9.432-9.432-.048 6.912 2.304.024z"
-                                    fill="currentColor"></path>
-                            </svg>
-                            <svg viewBox="0 0 14 15" fill="none" width="10" xmlns="http://www.w3.org/2000/svg"
-                                class="button__icon-svg button__icon-svg--copy">
-                                <path
-                                    d="M13.376 11.552l-.264-10.44-10.44-.24.024 2.28 6.96-.048L.2 12.56l1.488 1.488 9.432-9.432-.048 6.912 2.304.024z"
-                                    fill="currentColor"></path>
-                            </svg>
-                        </span>
-                        Generate Schedule
+                <div class="nav-row mt-4 flex items-center justify-between">
+                    <button id="filter-back" class="btn-secondary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back
                     </button>
-                </div>
-
-                <div class="nav-row mt-4">
-                    <button id="filter-back" class="btn-secondary">Back</button>
+                    <button id="processButton" class="btn-primary">
+                        Generate Schedule
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -319,10 +365,20 @@
                     <button id="dayoff-TUE" class="dayoff-btn" type="button">Tue off (0)</button>
                     <button id="dayoff-WED" class="dayoff-btn" type="button">Wed off (0)</button>
                     <button id="dayoff-THU" class="dayoff-btn" type="button">Thu off (0)</button>
-                    <button id="clear-dayoff-filter" type="button"
-                        class="text-sm text-gray-500 hover:text-brand-500">Clear</button>
-                    <button id="clear-locks-btn" type="button" class="text-sm text-gray-500 hover:text-brand-500"
-                        style="margin-left: 8px;">🔓 Clear Locks</button>
+                    <button id="clear-dayoff-filter" type="button">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Clear
+                    </button>
+                    <button id="clear-locks-btn" type="button" style="margin-left: 8px;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Clear Locks
+                    </button>
                 </div>
             </div>
 
@@ -330,38 +386,23 @@
 
             <!-- Schedule Action Buttons -->
             <div class="schedule-actions">
-                <button id="schedule-stage-back-bottom" class="back-filters-btn">
-                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
+                <button id="schedule-stage-back-bottom">
                     Back to Filters
                 </button>
 
-                <!-- Center Nav Buttons (Strict Style) -->
-                <div class="styled-wrapper">
+                <!-- Center Nav Buttons (Circular Style) -->
+                <div class="schedule-nav-center">
                     <!-- Previous -->
-                    <button id="back" class="button">
-                        <div class="button-box">
-                            <span class="button-elem">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 40">
-                                    <path
-                                        d="M46 20.038c0-.7-.3-1.5-.8-2.1l-16-17c-1.1-1-3.2-1.4-4.4-.3-1.2 1.1-1.2 3.3 0 4.4l11.3 11.9H3c-1.7 0-3 1.3-3 3s1.3 3 3 3h33.1l-11.3 11.9c-1 1-1.2 3.3 0 4.4 1.2 1.1 3.3.8 4.4-.3l16-17c.5-.5.8-1.1.8-1.9z">
-                                    </path>
-                                </svg>
-                            </span>
-                        </div>
+                    <button id="back" class="btn-circle">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
                     </button>
                     <!-- Next -->
-                    <button id="next" class="button next">
-                        <div class="button-box">
-                            <span class="button-elem">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 40">
-                                    <path
-                                        d="M46 20.038c0-.7-.3-1.5-.8-2.1l-16-17c-1.1-1-3.2-1.4-4.4-.3-1.2 1.1-1.2 3.3 0 4.4l11.3 11.9H3c-1.7 0-3 1.3-3 3s1.3 3 3 3h33.1l-11.3 11.9c-1 1-1.2 3.3 0 4.4 1.2 1.1 3.3.8 4.4-.3l16-17c.5-.5.8-1.1.8-1.9z">
-                                    </path>
-                                </svg>
-                            </span>
-                        </div>
+                    <button id="next" class="btn-circle">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
                     </button>
                 </div>
 
