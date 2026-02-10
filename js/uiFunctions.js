@@ -1,170 +1,470 @@
-export function renderSchedule(schedule, containerId, customColors={}) {
-    // Get the container element
+// Professional Schedule Calendar Rendering
+// Following industry best practices for calendar UI/UX
+
+/**
+ * Handle session swap with direct injection (no Jump strategy)
+ * Senior Engineer approach: Always inject the new schedule variant
+ * This preserves ALL current selections while only changing the swapped session
+ * 
+ * @param {string} courseKey - Course being swapped
+ * @param {string} oldClassName - Current class name
+ * @param {string} newClassName - Target class name
+ * @param {HTMLElement} container - Calendar container
+ * @param {Object} customColors - Color assignments
+ */
+function handleSwap(courseKey, oldClassName, newClassName, container, customColors) {
+    console.log('[handleSwap] Starting swap:', { courseKey, oldClassName, newClassName });
+
+    if (!window.sessionSwapper || !window.allSchedules) {
+        console.error('[handleSwap] sessionSwapper or allSchedules not available');
+        return;
+    }
+
+    const currentViewIndex = window.viewIndex || 0;
+    const currentSchedule = window.allSchedules[currentViewIndex];
+
+    if (!currentSchedule) {
+        console.error('[handleSwap] Current schedule not found');
+        return;
+    }
+
+    const sessionType = window.sessionSwapper.getSessionType(oldClassName);
+    console.log('[handleSwap] Session type:', sessionType);
+
+    // Get the new group from coursesData
+    const coursesData = JSON.parse(localStorage.getItem('coursesData') || '{}');
+    const courseData = coursesData[courseKey];
+    if (!courseData || !courseData[sessionType]) {
+        console.error('[handleSwap] Course data not found for:', courseKey, sessionType);
+        return;
+    }
+
+    // Find the new group - it's an array of session objects
+    const newGroup = courseData[sessionType].find(group =>
+        Array.isArray(group) && group.length > 0 && group[0].class === newClassName
+    );
+
+    if (!newGroup) {
+        console.error('[handleSwap] Target session group not found:', newClassName);
+        return;
+    }
+
+    console.log('[handleSwap] Found new group with', newGroup.length, 'sessions');
+
+    // Perform the swap (remove old, add new)
+    const result = window.sessionSwapper.performSwap(currentSchedule, courseKey, oldClassName, newGroup);
+
+    if (!result.success) {
+        console.error('[handleSwap] Swap failed:', result.error);
+        return;
+    }
+
+    const newSchedule = result.newSchedule;
+
+    // Fix "Rearranging" issue: Sort the schedule so sessions are always in canonical order (Day -> Time)
+    const dayOrder = { "SUN": 0, "MON": 1, "TUE": 2, "WED": 3, "THU": 4, "FRI": 5, "SAT": 6 };
+    newSchedule.sort((a, b) => {
+        const dA = dayOrder[a.day] ?? 99;
+        const dB = dayOrder[b.day] ?? 99;
+        if (dA !== dB) return dA - dB;
+        return (a.start || "").localeCompare(b.start || "");
+    });
+
+    console.log('[handleSwap] Created new schedule with', newSchedule.length, 'sessions');
+
+    // ALWAYS inject the new schedule (don't search for existing matches)
+    // This ensures user's current selections are preserved
+    window.allSchedules.push(newSchedule);
+    const newViewIndex = window.allSchedules.length - 1;
+    window.viewIndex = newViewIndex;
+    console.log('[handleSwap] Injected at index:', newViewIndex);
+
+    // Add lock for the NEW session (directly manipulate the Set, don't call toggleLock)
+    if (window.lockedGroups) {
+        const lockKey = `${courseKey}|||${sessionType}|||${newClassName}`;
+        window.lockedGroups.add(lockKey);
+        console.log('[handleSwap] Added lock:', lockKey);
+    }
+
+    // Clear ghosts BEFORE re-render
+    window.sessionSwapper.clearGhosts(container);
+
+    // Render the new schedule directly (avoid triggering recomputeFilteredIndexes)
+    if (typeof renderSchedule === 'function') {
+        renderSchedule(newSchedule, container.id, customColors);
+    } else if (window.renderSchedule) {
+        window.renderSchedule(newSchedule, container.id, customColors);
+    }
+
+    // Update the summary display
+    const totalEl = document.getElementById('total-schedules');
+    const idxEl = document.getElementById('current-schedule-index');
+    if (totalEl) totalEl.textContent = `Found ${window.allSchedules.length} schedules`;
+    if (idxEl) idxEl.textContent = `Viewing ${newViewIndex + 1} / ${window.allSchedules.length}`;
+
+    console.log('[handleSwap] Swap complete!');
+}
+
+export function renderSchedule(schedule, containerId, customColors = {}, options = {}) {
     const container = document.getElementById(containerId);
-    if (!container) {
-        console.error(`Container with id ${containerId} not found`);
-        return;
-    }
+    if (!container) return;
+    if (!Array.isArray(schedule)) return;
 
-    // Ensure schedule is an array
-    if (!Array.isArray(schedule)) {
-        console.error('renderSchedule expected an array for schedule, got:', schedule);
-        return;
-    }
+    // Options: enable lock/drag only in schedule-details-container by default
+    const isMainScheduleView = containerId === 'schedule-details-container';
+    const enableLock = options.enableLock ?? isMainScheduleView;
+    const enableDrag = options.enableDrag ?? isMainScheduleView;
 
-    // Clear all previously rendered blocks in this specific container
-    container.querySelectorAll('.class-block').forEach(block => block.remove());
+    // Clear previous blocks
+    container.querySelectorAll('.class-block').forEach(b => b.remove());
+    // Also clear any lingering ghosts
+    container.querySelectorAll('.drop-zone-ghost').forEach(g => g.remove());
 
-    // Ensure a reusable tooltip exists per container (results and mySchedule screens)
-    const enableTooltip = (containerId === 'schedule-details-container' || containerId === 'schedule-container');
+    // Tooltip setup
+    const enableTooltip = ['schedule-details-container', 'schedule-container', 'course-details-container'].includes(containerId);
     const tooltipId = `class-tooltip-${containerId}`;
     let tooltip = enableTooltip ? container.querySelector(`#${tooltipId}`) : null;
-    if (enableTooltip) {
-        if (!tooltip) {
-            tooltip = document.createElement('div');
-            tooltip.id = tooltipId;
-            tooltip.style.position = 'fixed';
-            tooltip.style.display = 'none';
-            tooltip.style.pointerEvents = 'none';
-            tooltip.style.background = '#fff';
-            tooltip.style.color = '#111';
-            tooltip.style.border = '1px solid #e5e7eb';
-            tooltip.style.borderRadius = '10px';
-            tooltip.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
-            tooltip.style.padding = '10px 12px';
-            tooltip.style.fontSize = '14px';
-            tooltip.style.lineHeight = '1.35';
-            tooltip.style.maxWidth = '340px';
-            tooltip.style.zIndex = '9999';
-            container.appendChild(tooltip);
-        } else {
-            tooltip.style.display = 'none';
-        }
+    if (enableTooltip && !tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = tooltipId;
+        tooltip.className = 'schedule-tooltip';
+        container.appendChild(tooltip);
     }
 
-    // Safely read course details metadata
-    let details = undefined;
+    // Course details
+    let details;
     try {
         const raw = localStorage.getItem('courseDetails');
-        details = raw ? JSON.parse(raw) : undefined;
-    } catch (e) {
-        console.warn('Failed to parse courseDetails from localStorage:', e);
-        details = undefined;
-    }
+        details = raw ? JSON.parse(raw) : {};
+    } catch (e) { details = {}; }
+
+    const DAY_START = 8;
+    const PX_PER_HOUR = 65;  // Increased for more spacing
+
+    // Parse time "HH:MM" to decimal
+    const parseTime = (t) => {
+        if (!t) return DAY_START;
+        if (typeof t === 'number') return t;
+        const [h, m] = t.toString().split(':').map(Number);
+        return (isNaN(h) ? DAY_START : h) + ((m || 0) / 60);
+    };
+
+    // Format as "HH:MM"
+    const fmtTime = (t) => t?.toString().trim() || '';
+
+    // Get session badge (Lec 01, Lab 02, etc)
+    const getBadge = (cls) => {
+        if (!cls) return '';
+        const c = cls.toLowerCase();
+        const num = cls.match(/\d+/)?.[0]?.padStart(2, '0') || '';
+        if (c.includes('lec')) return `Lec ${num}`;
+        if (c.includes('lab')) return `Lab ${num}`;
+        if (c.includes('tut')) return `Tut ${num}`;
+        return cls;
+    };
+
+    // Darken a hex color by amount (0-1)
+    const darken = (hex, amount = 0.15) => {
+        const rgb = hex.match(/\w\w/g).map(x => parseInt(x, 16));
+        return '#' + rgb.map(c => Math.max(0, Math.round(c * (1 - amount))).toString(16).padStart(2, '0')).join('');
+    };
+
+    // Lighten a hex color
+    const lighten = (hex, amount = 0.15) => {
+        const rgb = hex.match(/\w\w/g).map(x => parseInt(x, 16));
+        return '#' + rgb.map(c => Math.min(255, Math.round(c + (255 - c) * amount)).toString(16).padStart(2, '0')).join('');
+    };
 
     schedule.forEach(session => {
-        if (!session || !session.day) {
-            console.warn('Skipping invalid session entry:', session);
-            return;
-        }
-        const dayColumn = container.querySelector(`.day-column[data-day="${session.day}"]`);
-        
-        if (!dayColumn) {
-            console.error(`No column found for day: ${session.day} in container ${containerId}`);
-            return;
-        }
+        if (!session?.day) return;
 
-        const startTime = typeof session.start === 'string' ? 
-            parseFloat(session.start.split(':').reduce((h, m) => parseFloat(h) + parseFloat(m)/60)) : 
-            session.start;
-        const endTime = typeof session.end === 'string' ? 
-        parseFloat(session.end.split(':').reduce((h, m) => parseFloat(h) + parseFloat(m)/60)) : 
-        session.end;
-        const duration = (endTime ?? 0) - (startTime ?? 0);
+        const dayCol = container.querySelector(`.day-column[data-day="${session.day}"]`);
+        if (!dayCol) return;
 
-        // Resolve session/course name with safe fallbacks
+        const start = parseTime(session.start);
+        const end = parseTime(session.end);
+        const duration = Math.max(end - start, 0.5);
+        const top = (start - DAY_START) * PX_PER_HOUR;
+        const height = Math.max(duration * PX_PER_HOUR, 35);
+
         const courseKey = session.course;
-        const meta = (details && courseKey) ? details[courseKey] : undefined;
-        const sessionName = (meta && meta.courseName) ? meta.courseName : (courseKey || 'Unknown Course');
+        const meta = details[courseKey];
+        const courseName = meta?.courseName || courseKey || 'Course';
+        const badge = getBadge(session.class);
+        const lecturer = session.lecturer || 'TBA';
 
-        const block = document.createElement("div");
-        block.className = "class-block";
-        block.style.top = `${((startTime ?? 8) - 8) * 50}px`; // Adjust 8 to match your dayStart time
-        block.style.height = `${(duration > 0 ? duration : 0.5) * 50}px`;
-        block.innerHTML = `
-            <div class="course-name">${sessionName}</div>
-            <div class="course-name">${session.lecturer || 'TBA'}</div>
-            <div class="location">${session.location || ''}</div>
-            <div class="time">${session.start ?? ''} - ${session.end ?? ''}</div>
-        `;
-        block.style.display = 'flex';
-        block.style.flexDirection = 'column';
+        // Colors with proper contrast
+        let bgColor = customColors[courseKey]?.[0] || '#D74C4C';
+        let fgColor = customColors[courseKey]?.[1] || '#FFFFFF';
 
-        if (customColors && courseKey && customColors[courseKey]){
-            const [bg, fg] = customColors[courseKey];
-            if (bg) block.style.backgroundColor = bg;
-            if (fg) block.style.color = fg;
+        // Badge: same color but darker for elegance
+        const badgeBg = darken(bgColor, 0.25);
+        const badgeFg = '#FFFFFF';
+
+        // Create block
+        const block = document.createElement('div');
+        block.className = 'class-block';
+
+        // Refined styling - softer, more professional
+        Object.assign(block.style, {
+            position: 'absolute',
+            left: '3px',
+            right: '3px',
+            top: `${top}px`,
+            height: `${height}px`,
+            background: bgColor,
+            color: fgColor,
+            borderRadius: '6px',
+            padding: '8px 10px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)',
+            borderLeft: `3px solid ${badgeBg}`,
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+        });
+
+        // Store session data for lock/drag functionality
+        block.dataset.course = session.course;
+        block.dataset.class = session.class;
+        block.dataset.day = session.day;
+        block.dataset.start = session.start;
+
+
+        // Content based on block size
+        const isLarge = height >= 85;
+        const isMedium = height >= 55;
+
+        // Lock button HTML (only if lock is enabled)
+        const sessionLocked = enableLock && (window.scheduleApp?.isLocked?.(session.course, session.class) || false);
+        if (sessionLocked) {
+            block.classList.add('locked');
+            block.style.boxShadow = '0 0 0 2px #FFD700, 0 1px 3px rgba(0,0,0,0.12)';
         }
-        dayColumn.appendChild(block);
 
-        // Detailed hover tooltip for results screen
-        const showTooltip = (evt) => {
-            if (!enableTooltip || !tooltip) return;
-            // Build rich content
-            const detailsHtml = `
-                <div style="font-weight:700; margin-bottom:4px;">${sessionName}</div>
-                <div style="opacity:0.8; margin-bottom:6px;">${session.class || ''}</div>
-                <div><strong>Day:</strong> ${session.day || ''}</div>
-                <div><strong>Time:</strong> ${session.start ?? ''} - ${session.end ?? ''}</div>
-                <div><strong>Lecturer:</strong> ${session.lecturer || 'TBA'}</div>
-                <div><strong>Location:</strong> ${session.location || ''}</div>
-                <div style="opacity:0.7; margin-top:6px;">${courseKey || ''}</div>
+        const lockIcon = sessionLocked ? '🔒' : '🔓';
+        const lockBtnHtml = enableLock
+            ? `<button class="lock-btn" style="position:absolute; top:2px; right:2px; width:24px; height:24px; min-width:24px; background:rgba(255,255,255,0.9); border:none; border-radius:4px; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; z-index:10;">${lockIcon}</button>`
+            : '';
+        const paddingRight = enableLock ? 'padding-right:26px;' : '';
+
+        if (isLarge) {
+            block.innerHTML = `
+                ${lockBtnHtml}
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:auto; padding-right:26px;">
+                    <span style="font-size:11px; font-weight:600; line-height:1.3; flex:1; padding-right:6px;">${courseName}</span>
+                    <span style="background:${badgeBg}; color:${badgeFg}; padding:2px 6px; border-radius:3px; font-size:9px; font-weight:600; letter-spacing:0.3px; white-space:nowrap;">${badge}</span>
+                </div>
+                <div style="font-size:13px; font-weight:500; letter-spacing:-0.2px; margin:4px 0;">
+                    ${fmtTime(session.start)} → ${fmtTime(session.end)}
+                </div>
+                <div style="font-size:9px; opacity:0.9; margin-top:auto;">
+                    ${lecturer}
+                </div>
             `;
-            tooltip.innerHTML = detailsHtml;
+        } else if (isMedium) {
+            block.innerHTML = `
+                ${lockBtnHtml}
+                <div style="display:flex; justify-content:space-between; align-items:center; padding-right:26px;">
+                    <span style="font-size:10px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">${courseName}</span>
+                    <span style="background:${badgeBg}; color:${badgeFg}; padding:1px 4px; border-radius:2px; font-size:8px; font-weight:600; margin-left:4px;">${badge}</span>
+                </div>
+                <div style="font-size:11px; font-weight:500; margin-top:4px;">
+                    ${fmtTime(session.start)} → ${fmtTime(session.end)}
+                </div>
+            `;
+        } else {
+            block.innerHTML = `
+                ${lockBtnHtml}
+                <div style="font-size:9px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:26px;">${courseName}</div>
+                <div style="font-size:8px; opacity:0.85;">${fmtTime(session.start)}</div>
+            `;
+        }
 
-            // Visual accent using colors
-            if (customColors && courseKey && customColors[courseKey]) {
-                const [bg, fg] = customColors[courseKey];
-                tooltip.style.borderColor = bg || '#e5e7eb';
-            } else {
-                tooltip.style.borderColor = '#e5e7eb';
+        // Show lock button always if locked, otherwise on hover
+        const lockBtn = block.querySelector('.lock-btn');
+        if (lockBtn) {
+            if (sessionLocked) {
+                lockBtn.style.opacity = '1';
             }
 
-            // Position near the cursor with viewport clamping
-            const padding = 12;
-            const { clientX, clientY } = evt;
-            tooltip.style.display = 'block';
-            // Temporarily position to measure size
-            tooltip.style.left = (clientX + padding) + 'px';
-            tooltip.style.top = (clientY + padding) + 'px';
-            const rect = tooltip.getBoundingClientRect();
-            let left = clientX + padding;
-            let top = clientY + padding;
-            const maxLeft = document.documentElement.clientWidth - rect.width - padding;
-            const maxTop = document.documentElement.clientHeight - rect.height - padding;
-            if (left > maxLeft) left = maxLeft;
-            if (top > maxTop) top = maxTop;
-            tooltip.style.left = left + 'px';
-            tooltip.style.top = top + 'px';
-        };
+            // Lock button click handler (using addEventListener)
+            lockBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (window.scheduleApp?.toggleLock) {
+                    window.scheduleApp.toggleLock(session.course, session.class);
+                }
+            });
+        }
 
-        const moveTooltip = (evt) => {
-            if (!enableTooltip || !tooltip || tooltip.style.display !== 'block') return;
-            const padding = 12;
-            const { clientX, clientY } = evt;
-            let left = clientX + padding;
-            let top = clientY + padding;
-            const rect = tooltip.getBoundingClientRect();
-            const maxLeft = document.documentElement.clientWidth - rect.width - padding;
-            const maxTop = document.documentElement.clientHeight - rect.height - padding;
-            if (left > maxLeft) left = maxLeft;
-            if (top > maxTop) top = maxTop;
-            tooltip.style.left = left + 'px';
-            tooltip.style.top = top + 'px';
-        };
+        // Elegant hover using addEventListener (no overwriting)
+        block.addEventListener('mouseenter', () => {
+            block.style.transform = 'translateY(-1px)';
+            block.style.boxShadow = sessionLocked
+                ? '0 0 0 2px #FFD700, 0 4px 12px rgba(0,0,0,0.15)'
+                : '0 4px 12px rgba(0,0,0,0.15)';
+            block.style.zIndex = '5';
+            if (lockBtn) lockBtn.style.opacity = '1';
+        });
+        block.addEventListener('mouseleave', () => {
+            block.style.transform = 'translateY(0)';
+            block.style.boxShadow = sessionLocked
+                ? '0 0 0 2px #FFD700, 0 1px 3px rgba(0,0,0,0.12)'
+                : '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)';
+            block.style.zIndex = '1';
+            if (lockBtn && !sessionLocked) lockBtn.style.opacity = '0';
+        });
 
-        const hideTooltip = () => {
-            if (!enableTooltip || !tooltip) return;
-            tooltip.style.display = 'none';
-        };
+        // ===================================
+        // DRAG-DROP FUNCTIONALITY (only if enabled)
+        // ===================================
+        if (enableDrag) {
+            block.draggable = true;
+            block.style.cursor = 'grab';
 
-        if (enableTooltip) {
-            block.addEventListener('mouseenter', showTooltip);
-            block.addEventListener('mousemove', moveTooltip);
-            block.addEventListener('mouseleave', hideTooltip);
-        } else {
-            // As a fallback, set a simple title for non-results contexts
-            block.title = `${sessionName} | ${session.day || ''} ${session.start ?? ''}-${session.end ?? ''} | ${session.lecturer || 'TBA'} | ${session.location || ''}`;
+            block.addEventListener('dragstart', (e) => {
+                // Store drag data
+                const dragData = {
+                    course: session.course,
+                    class: session.class,
+                    sessionType: window.sessionSwapper?.getSessionType?.(session.class) || 'lectures'
+                };
+                e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+                e.dataTransfer.effectAllowed = 'move';
+
+                // Store drag context globally for ghost handlers
+                window._dragContext = {
+                    course: session.course,
+                    className: session.class,
+                    container: container,
+                    customColors: customColors,
+                    active: true
+                };
+
+                // Visual feedback
+                block.classList.add('dragging');
+                block.style.opacity = '0.6';
+                block.style.cursor = 'grabbing';
+
+                // Render ghost drop zones
+                if (window.sessionSwapper && window.allSchedules) {
+                    const currentSchedule = window.allSchedules[window.viewIndex || 0] || [];
+                    const alternatives = window.sessionSwapper.getAlternatives(
+                        session.course,
+                        dragData.sessionType,
+                        session.class,
+                        currentSchedule
+                    );
+
+                    if (alternatives.length > 0) {
+                        window.sessionSwapper.renderGhosts(alternatives, container, customColors);
+
+                        // Standard HTML5 DnD: Enable dropping on ghosts
+                        container.querySelectorAll('.drop-zone-ghost.valid').forEach(ghost => {
+                            // MUST prevent default on dragover to allow dropping
+                            ghost.addEventListener('dragover', (evt) => {
+                                evt.preventDefault();
+                                evt.dataTransfer.dropEffect = 'move';
+                                ghost.style.transform = 'scale(1.02)';
+                            });
+                            ghost.addEventListener('dragleave', () => ghost.style.transform = 'scale(1)');
+
+                            ghost.addEventListener('drop', (evt) => {
+                                evt.preventDefault();
+                                evt.stopPropagation();
+                                console.log('[DnD] Drop on ghost:', ghost.dataset.className);
+
+                                // Only handle if we're in an active drag
+                                if (!window._dragContext?.active) return;
+
+                                const targetClassName = ghost.dataset.className;
+                                const ctx = window._dragContext;
+
+                                // Mark drag as complete to prevent double-handling
+                                window._dragContext.active = false;
+
+                                // Perform the swap
+                                handleSwap(
+                                    ctx.course,
+                                    ctx.className,
+                                    targetClassName,
+                                    ctx.container,
+                                    ctx.customColors
+                                );
+                            });
+                        });
+                    }
+                }
+            });
+
+            block.addEventListener('dragend', () => {
+                block.classList.remove('dragging');
+                block.style.opacity = '1';
+                block.style.cursor = 'grab';
+
+                // Clear ghosts
+                if (window.sessionSwapper) {
+                    window.sessionSwapper.clearGhosts(container);
+                }
+                // Clear drag context
+                window._dragContext = null;
+            });
+        } // End of if (enableDrag)
+
+        dayCol.appendChild(block);
+
+        // Tooltip
+        if (enableTooltip && tooltip) {
+            block.onmouseenter = (e) => {
+                block.style.transform = 'translateY(-1px)';
+                block.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                block.style.zIndex = '5';
+
+                tooltip.innerHTML = `
+                    <div class="tooltip-header">${courseName}</div>
+                    <div class="tooltip-badge" style="background:${badgeBg}">${session.class || ''}</div>
+                    <div class="tooltip-details">
+                        <div><span class="label">Time</span>${fmtTime(session.start)} – ${fmtTime(session.end)}</div>
+                        <div><span class="label">Day</span>${session.day}</div>
+                        <div><span class="label">Lecturer</span>${lecturer}</div>
+                        <div><span class="label">Location</span>${session.location || 'TBA'}</div>
+                    </div>
+                `;
+                tooltip.style.borderLeftColor = bgColor;
+
+                const pad = 10;
+                let left = e.clientX + pad;
+                let top = e.clientY + pad;
+                tooltip.style.display = 'block';
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+
+                const r = tooltip.getBoundingClientRect();
+                if (left + r.width > window.innerWidth) tooltip.style.left = (e.clientX - r.width - pad) + 'px';
+                if (top + r.height > window.innerHeight) tooltip.style.top = (e.clientY - r.height - pad) + 'px';
+            };
+
+            block.onmousemove = (e) => {
+                const pad = 10;
+                let left = e.clientX + pad;
+                let top = e.clientY + pad;
+                const r = tooltip.getBoundingClientRect();
+                if (left + r.width > window.innerWidth) left = e.clientX - r.width - pad;
+                if (top + r.height > window.innerHeight) top = e.clientY - r.height - pad;
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+            };
+
+            block.onmouseleave = () => {
+                block.style.transform = 'translateY(0)';
+                block.style.boxShadow = '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)';
+                block.style.zIndex = '1';
+                tooltip.style.display = 'none';
+            };
         }
     });
 }

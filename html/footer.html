@@ -1,23 +1,84 @@
 <footer class="footer">
     <style>
         .footer {
-            background-color: #CF3501;
+            background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
             color: white;
             margin: 0;
-            padding: 0;
-            min-height: 300px;
+            padding: 40px 24px 24px;
+            margin-top: 40px;
         }
-    
+
         .footer a {
-            color: white;
+            color: #F9FAFB;
+            text-decoration: none;
+            transition: color 0.2s ease;
         }
-    
+
+        .footer a:hover {
+            color: #CE3602;
+        }
+
         .footer-content {
-            color: white;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 32px;
         }
-    
+
+        .footer-section h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0 0 12px;
+            color: #CE3602;
+        }
+
+        .footer-section p {
+            margin: 0 0 8px;
+            font-size: 14px;
+            color: #9CA3AF;
+        }
+
+        .footer-section a {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
         .footer-bottom {
-            color: white;
+            max-width: 1200px;
+            margin: 24px auto 0;
+            padding-top: 20px;
+            border-top: 1px solid #374151;
+            text-align: center;
+        }
+
+        .footer-bottom p {
+            margin: 0;
+            font-size: 13px;
+            color: #6B7280;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: #374151;
+            border-radius: 8px;
+            transition: background 0.2s ease;
+        }
+
+        .social-links a:hover {
+            background: #CE3602;
         }
     </style>
     <div class="footer-content">
@@ -26,21 +87,15 @@
             <p>Your Schedule toolbox.</p>
             <p>Made by Ali Yassin.</p>
         </div>
-        
+
         <div class="footer-section">
-            <h3>Connect With Me</h3>
-            <a href="https://www.linkedin.com/in/ali13yassin/">Linkedin</a>
+            <h3>Connect</h3>
+            <a href="https://www.linkedin.com/in/ali13yassin/">LinkedIn</a>
             <a href="mailto:ali230105333@sut.edu.eg">ali230105333@sut.edu.eg</a>
-            <div class="social-links">
-                
-                <a href="#"><i class="fa fa-twitter"></i></a>
-                <a href="#"><i class="fa fa-linkedin"></i></a>
-                <a href="#"><i class="fa fa-instagram"></i></a>
-            </div>
         </div>
     </div>
-    
+
     <div class="footer-bottom">
         <p>&copy; 2024 Scheduley. All rights reserved.</p>
     </div>
-</footer>   
+</footer>
