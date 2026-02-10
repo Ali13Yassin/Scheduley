@@ -579,6 +579,19 @@ function showSelectedCoursesDetails(courseId) {
         };
     }
 
+    function saveSessionChanges(cId, sType, sIndex, newGroup) {
+        // Update local object
+        coursesData[cId][sType][sIndex] = newGroup;
+
+        // Update Global State
+        if (window.courses && window.courses[cId]) {
+            window.courses[cId][sType][sIndex] = newGroup;
+        }
+
+        // Update persistence
+        localStorage.setItem('coursesData', JSON.stringify(coursesData));
+    }
+
     function createSessionCard(sessionGroup, type, index) {
         const card = document.createElement('div');
         card.className = 'course-card';
@@ -602,28 +615,29 @@ function showSelectedCoursesDetails(courseId) {
         });
 
         card.innerHTML = `
-            <div class="session-card-title">${className}</div>
+            <div class="session-card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>${className}</span>
+                <button class="edit-btn" style="padding: 2px 8px; font-size: 10px; background: #E5E7EB; border-radius: 4px; color: #374151; border: none; cursor: pointer;">Edit</button>
+            </div>
              <div class="session-card-details">
-                ${detailsHTML}
-                <div style="margin-top: 4px; border-top: 1px solid #eee; padding-top: 4px;">
+                <div class="details-content">${detailsHTML}</div>
+                <div class="edit-controls" style="display:none; margin-top:8px; flex-direction:column; gap:4px;"></div>
+                <div class="lecturer-info" style="margin-top: 4px; border-top: 1px solid #eee; padding-top: 4px;">
                     ${lecturer}
                 </div>
             </div>
         `;
 
-        // Check existing selections
-        // logic: if ANY session in this group is found in selectedSessionsToRemove, 
-        // it counts as selected (implied: the whole group is selected/removed).
-        // Actually, selectedSessionsToRemove stores "class" names usually.
-        // Let's check how it stores them: "sessionsArray.push(session.class);"
-        // So checking if the class name relies in the list is enough.
-
+        // Selection Logic
         const isSelected = window.selectedSessionsToRemove[courseId][sessionType]
             .includes(className);
 
         if (isSelected) card.classList.add('selected');
 
         card.addEventListener('click', () => {
+            // If editing, do not toggle selection
+            if (card.classList.contains('editing')) return;
+
             const sessionsArray = window.selectedSessionsToRemove[courseId][sessionType];
             const sessionIndex = sessionsArray.indexOf(className);
 
@@ -639,6 +653,86 @@ function showSelectedCoursesDetails(courseId) {
 
             // persistSelectedSessions();
             updateTimetablePreview();
+        });
+
+        // Edit Functionality
+        const editBtn = card.querySelector('.edit-btn');
+        const detailsContent = card.querySelector('.details-content');
+        const editControls = card.querySelector('.edit-controls');
+
+        editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (card.classList.contains('editing')) return;
+
+            card.classList.add('editing');
+            detailsContent.style.display = 'none';
+            editBtn.style.display = 'none';
+            editControls.style.display = 'flex';
+
+            // Generate inputs
+            editControls.innerHTML = '';
+
+            sessionGroup.forEach((session, sIndex) => {
+                const row = document.createElement('div');
+                row.style.marginBottom = '6px';
+                row.innerHTML = `
+                    <div style="font-weight:600; font-size:11px; margin-bottom:2px;">${session.day}</div>
+                    <div style="display:flex; gap:4px; align-items:center;">
+                        <input type="time" class="edit-start-${sIndex}" value="${session.start}" style="border:1px solid #ccc; border-radius:4px; padding:2px; font-size:11px; width: 75px;">
+                        <span>-</span>
+                        <input type="time" class="edit-end-${sIndex}" value="${session.end}" style="border:1px solid #ccc; border-radius:4px; padding:2px; font-size:11px; width: 75px;">
+                    </div>
+                 `;
+                editControls.appendChild(row);
+            });
+
+            // Action buttons
+            const actions = document.createElement('div');
+            actions.style.display = 'flex';
+            actions.style.gap = '8px';
+            actions.style.marginTop = '4px';
+            actions.innerHTML = `
+                <button class="save-edit-btn" style="flex:1; background:#CE3602; color:white; border:none; border-radius:4px; padding:4px; font-size:11px; cursor:pointer;">Save</button>
+                <button class="cancel-edit-btn" style="flex:1; background:#E5E7EB; color:#374151; border:none; border-radius:4px; padding:4px; font-size:11px; cursor:pointer;">Cancel</button>
+            `;
+            editControls.appendChild(actions);
+
+            // Listeners
+            actions.querySelector('.cancel-edit-btn').addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                card.classList.remove('editing');
+                detailsContent.style.display = 'block';
+                editBtn.style.display = 'block';
+                editControls.style.display = 'none';
+            });
+
+            actions.querySelector('.save-edit-btn').addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                // Gather Data
+                const newSessions = JSON.parse(JSON.stringify(sessionGroup)); // Deep copy
+                let valid = true;
+
+                newSessions.forEach((s, sIndex) => {
+                    const startVal = editControls.querySelector(`.edit-start-${sIndex}`).value;
+                    const endVal = editControls.querySelector(`.edit-end-${sIndex}`).value;
+
+                    if (!startVal || !endVal) valid = false;
+                    if (startVal >= endVal) {
+                        alert(`Invalid time range for ${s.day}`);
+                        valid = false;
+                    }
+                    s.start = startVal;
+                    s.end = endVal;
+                });
+
+                if (!valid) return;
+
+                // Save
+                saveSessionChanges(courseId, type, index, newSessions);
+
+                // Refresh View
+                showSelectedCoursesDetails(courseId);
+            });
         });
 
         // Preview on hover - render ALL sessions in the group
@@ -941,7 +1035,7 @@ document.getElementById("processButton").addEventListener("click", function () {
 function wireDayOffButtons() {
     const ids = ['SUN', 'MON', 'TUE', 'WED', 'THU'];
     ids.forEach(day => {
-        const btn = document.getElementById(`dayoff-${day}`);
+        const btn = document.getElementById(`dayoff - ${day}`);
         if (btn) btn.addEventListener('click', () => applyDayOffFilter(day));
     });
     const clearBtn = document.getElementById('clear-dayoff-filter');
